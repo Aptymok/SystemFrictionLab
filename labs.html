@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Friction · Labs</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600&family=JetBrains+Mono:wght@300;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <nav>
+            <a href="index.html" class="logo">SYSTEM FRICTION</a>
+            <div class="nav-links">
+                <a href="index.html">HOME</a>
+                <a href="dashboard.html">DASHBOARD</a>
+                <a href="labs.html">LABS</a>
+                <a href="research.html">RESEARCH</a>
+                <a href="global.html">GLOBAL</a>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <h1 class="section-title">MONTE CARLO SIMULATION</h1>
+        <div id="metric-info" class="metric-info"></div>
+        
+        <div class="labs-controls">
+            <div class="control-group">
+                <label>Media</label>
+                <input type="number" id="mean-input" step="0.1" value="50">
+            </div>
+            <div class="control-group">
+                <label>Desviación</label>
+                <input type="number" id="std-input" step="0.1" value="5">
+            </div>
+            <div class="control-group">
+                <label>Iteraciones</label>
+                <input type="number" id="iter-input" step="100" value="1000">
+            </div>
+            <button id="run-simulation">EJECUTAR</button>
+        </div>
+
+        <div id="simulation-chart" class="chart-large"></div>
+        
+        <div id="results-table" class="results-table">
+            <h3>Percentiles</h3>
+            <div class="percentiles">
+                <div class="percentile">p5: <span id="p5-value">--</span></div>
+                <div class="percentile">p50: <span id="p50-value">--</span></div>
+                <div class="percentile">p95: <span id="p95-value">--</span></div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script type="module" src="js/montecarlo.js"></script>
+    <script type="module" src="js/charts_ecg.js"></script>
+    <script type="module" src="js/labs.js"></script>
+</body>
+</html>
