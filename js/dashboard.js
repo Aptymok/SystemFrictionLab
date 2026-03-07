@@ -3,7 +3,6 @@ import { loadMetricData } from './data_loader.js';
 import { runTimeSeriesMonteCarlo } from './montecarlo.js';
 import { createECG } from './charts_ecg.js';
 import { renderCouplingMatrix } from './coupling_matrix.js';
-import { calculateAGS } from './modelo_avanzado.js';
 
 async function initDashboard() {
     // Obtener categoría de URL
@@ -53,9 +52,9 @@ async function initDashboard() {
     });
     
     // Calcular deltas para matriz de acoplamiento
-    const waterData = await loadMetricData('ags', 'agua');
-    const integrityData = await loadMetricData('ags', 'integridad');
-    const perturbationData = await loadMetricData('ags', 'perturbacion');
+    const waterData = await loadMetricData('ags', 'water');
+    const integrityData = await loadMetricData('ags', 'integrity');
+    const perturbationData = await loadMetricData('ags', 'perturbation');
     
     const getLastTwoAvg = (data) => {
         if (!data || !data[0] || !data[0].serie_historica) return 50;

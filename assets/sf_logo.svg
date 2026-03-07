@@ -22,4 +22,27 @@
         <text x="150" y="45" class="logo-text">I</text>
         <text x="170" y="45" class="logo-text">C</text>
     </g>
+    <script>
+        <![CDATA[
+            setInterval(() => {
+                const group = document.getElementById('logo-group');
+                const filter = document.getElementById('turbulence');
+                
+                group.setAttribute('filter', 'url(#turbulence)');
+                
+                let scale = 5;
+                const interval = setInterval(() => {
+                    scale += 2;
+                    filter.firstElementChild.setAttribute('baseFrequency', `0.0${Math.min(9, Math.floor(scale/10))}`);
+                    
+                    if (scale > 30) {
+                        clearInterval(interval);
+                        setTimeout(() => {
+                            group.removeAttribute('filter');
+                        }, 500);
+                    }
+                }, 100);
+            }, 300000);
+        ]]>
+    </script>
 </svg>

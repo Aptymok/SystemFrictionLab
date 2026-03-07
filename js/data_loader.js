@@ -1,7 +1,7 @@
 // data_loader.js
 export async function loadCityData() {
     try {
-        const response = await fetch('/data/global/cities.json');
+        const response = await fetch('./data/global/cities.json');
         return await response.json();
     } catch (error) {
         console.error('Error loading city data:', error);
@@ -11,7 +11,7 @@ export async function loadCityData() {
 
 export async function loadMetricData(city, category) {
     try {
-        const response = await fetch(`/data/${city}/${category}.json`);
+        const response = await fetch(`./data/${city}/${category}.json`);
         return await response.json();
     } catch (error) {
         console.error(`Error loading ${city}/${category}:`, error);
