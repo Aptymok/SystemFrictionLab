@@ -1,61 +1,127 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>System Friction · AGS</title>
+    <title>System Friction Lab | Home</title>
     <link rel="stylesheet" href="css/main.css">
-    <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600&family=JetBrains+Mono:wght@300;500&display=swap" rel="stylesheet">
+    <style>
+        body.lab-mode {
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        nav {
+            padding: 20px 50px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #eee;
+        }
+        .logo {
+            font-weight: bold;
+            letter-spacing: 2px;
+            color: var(--accent-lab);
+        }
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            text-align: center;
+        }
+        .pulse-container {
+            width: 80%;
+            height: 200px;
+            background: #f9f9f9;
+            border: 1px solid var(--accent-lab);
+            margin: 30px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        /* Simulación visual del pulso azul */
+        .pulse-line {
+            width: 100%;
+            height: 2px;
+            background: var(--accent-lab);
+            box-shadow: 0 0 10px var(--accent-lab);
+            animation: pulse 2s infinite linear;
+        }
+        @keyframes pulse {
+            0% { opacity: 0.3; }
+            50% { opacity: 1; }
+            100% { opacity: 0.3; }
+        }
+        .grid-links {
+            display: grid;
+            grid-template-columns: repeat(3, 200px);
+            gap: 20px;
+            margin-top: 40px;
+        }
+        .card {
+            padding: 20px;
+            border: 1px solid #eee;
+            text-decoration: none;
+            color: var(--text-lab);
+            transition: all 0.3s;
+        }
+        .card:hover {
+            border-color: var(--accent-lab);
+            transform: translateY(-5px);
+        }
+        .card.sombra {
+            background: var(--bg-docs);
+            color: var(--accent-docs);
+            border-color: var(--accent-docs);
+        }
+    </style>
 </head>
-<body>
-    <header>
-        <nav>
-            <a href="index.html" class="logo">SYSTEM FRICTION</a>
-            <div class="nav-links">
-                <a href="index.html">HOME</a>
-                <a href="dashboard.html">DASHBOARD</a>
-                <a href="labs.html">LABS</a>
-                <a href="research.html">RESEARCH</a>
-                <a href="global.html">GLOBAL</a>
-            </div>
-        </nav>
-    </header>
+<body class="lab-mode">
 
-    <main>
-        <div class="score-container">
-            <h1 class="section-title">SYSTEM FRICTION INDEX</h1>
-            <div id="ags-score" class="main-score">--</div>
+    <nav>
+        <div class="logo">SYSTEM FRICTION LAB <span style="font-size: 0.7rem;">v.Beta</span></div>
+        <div class="status-indicator">
+            <span class="accent-blue">●</span> SISTEMA SINCRONIZADO
+        </div>
+    </nav>
+
+    <div class="main-container">
+        <h1>Arquitectura de la Incertidumbre</h1>
+        <p>Monitoreo dinámico de fricción sistémica y agentes biológicos.</p>
+
+        <div class="pulse-container">
+            <div class="pulse-line"></div>
+            <div style="position: absolute; color: var(--accent-lab); font-size: 0.8rem; bottom: 10px; right: 10px;">
+                NTI: 0.00ms (LATENCIA CERO)
+            </div>
         </div>
 
-        <div class="categories">
-            <div class="category-card" data-category="agua">
-                <h2>AGUA</h2>
-                <div class="category-bar">
-                    <div id="bar-agua" class="bar-fill" style="width:0%"></div>
-                </div>
-                <span id="score-agua" class="category-score">0</span>
-            </div>
-            <div class="category-card" data-category="integridad">
-                <h2>INTEGRIDAD</h2>
-                <div class="category-bar">
-                    <div id="bar-integridad" class="bar-fill" style="width:0%"></div>
-                </div>
-                <span id="score-integridad" class="category-score">0</span>
-            </div>
-            <div class="category-card" data-category="perturbacion">
-                <h2>PERTURBACIÓN</h2>
-                <div class="category-bar">
-                    <div id="bar-perturbacion" class="bar-fill" style="width:0%"></div>
-                </div>
-                <span id="score-perturbacion" class="category-score">0</span>
-            </div>
+        <div class="grid-links">
+            <a href="labs.html" class="card">
+                <h3>LABS</h3>
+                <p>Simulación de Agentes</p>
+            </a>
+            <a href="research.html" class="card">
+                <h3>RESEARCH</h3>
+                <p>Caso de Estudio MIHM</p>
+            </a>
+            <a href="core/nodo_aptymok.md" class="card sombra">
+                <h3>CORE</h3>
+                <p class="accent-gold">Acceso a la Sombra</p>
+            </a>
         </div>
-    </main>
+    </div>
 
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <script type="module" src="js/montecarlo.js"></script>
-    <script type="module" src="js/modelo_avanzado.js"></script>
-    <script type="module" src="js/data_loader.js"></script>
-    <script type="module" src="js/app.js"></script>
+    <footer style="padding: 20px; font-size: 0.8rem; color: #999;">
+        JAML &copy; 2026 | Consolidación de Vector Aptymok
+    </footer>
+
 </body>
 </html>
