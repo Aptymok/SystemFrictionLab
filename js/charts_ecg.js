@@ -45,9 +45,9 @@ export function createECG(containerId, data, simulations, options = {}) {
             const x1 = x(i);
             const x2 = x(i + 1);
             
-            let color = '#00cc66'; // Verde (Estable)
-            if (d.valor > 65) color = '#ff3366'; // Rojo (Crítico)
-            else if (d.valor > 35) color = '#ffaa00'; // Amarillo (Alerta)
+            let color = '#00cc66'; // Verde
+            if (d.valor > 65) color = '#ff3366'; // Rojo
+            else if (d.valor > 35) color = '#ffaa00'; // Amarillo
             
             svg.append('rect')
                 .attr('x', x1)
@@ -60,59 +60,78 @@ export function createECG(containerId, data, simulations, options = {}) {
         }
     });
 
-    // 5. Renderizar Área de Incertidumbre (Monte Carlo) - CORREGIDO
+    // 5. Renderizar Área de Incertidumbre - CORRECCIÓN DE ERROR DE REFERENCIA
     if (simulations && simulations.p5 && simulations.p95) {
-        const area = d3.area()
+        const areaGenerator = d3.area()
             .x((d, i) => x(i))
-            .y0((d, i) => y(simulations.p5 && simulations.p5[i] !== undefined ? simulations.p5[i] : d.valor))
-            .y1((d, i) => y(simulations.p95 && simulations.p95[i] !== undefined ? simulations.p95[i] : d.valor))
+            .y0((d, i) => {
+                // Validación explícita de i y del valor en el array de simulaciones
+                const val = (simulations.p5 && simulations.p5[i] !== undefined) 
+                            ? simulations.p5[i] 
+                            : d.valor;
+                return y(val);
+            })
+            .y1((d, i) => {
+                const val = (simulations.p95 && simulations.p95[i] !== undefined) 
+                            ? simulations.p95[i] 
+                            : d.valor;
+                return y(val);
+            })
             .curve(d3.curveMonotoneX);
 
         svg.append('path')
             .datum(data)
+            .attr('fill', '#4466aa')
+            .attr('fill-opacity', 0.15)
+            .attr('stroke', 'none')
             .attr('class', 'uncertainty-area')
-            .attr('d', area)
-            .style('fill', '#4466aa')
-            .style('opacity', 0.15)
-            .style('stroke', 'none');
+            .attr('d', areaGenerator);
     }
 
-    // 6. Línea de Valor Observado (Principal)
-    const line = d3.line()
+    // 6. Línea de Valor Observado
+    const lineGenerator = d3.line()
         .x((d, i) => x(i))
         .y(d => y(d.valor))
         .curve(d3.curveMonotoneX);
 
     svg.append('path')
         .datum(data)
+        .attr('fill', 'none')
+        .attr('stroke', '#ffffff')
+        .attr('stroke-width', 2)
         .attr('class', 'observed-line')
-        .attr('d', line)
-        .style('fill', 'none')
-        .style('stroke', '#ffffff')
-        .style('stroke-width', 2)
+        .attr('d', lineGenerator)
         .style('filter', 'drop-shadow(0px 0px 2px rgba(255,255,255,0.5))');
 
     // 7. Ejes
+    const xAxis = d3.axisBottom(x)
+        .ticks(data.length)
+        .tickFormat(i => data[i]?.fecha || '');
+
     svg.append('g')
         .attr('class', 'axis axis-x')
         .attr('transform', `translate(0,${height})`)
-        .call(d3.axisBottom(x).ticks(data.length).tickFormat(i => data[i]?.fecha || ''))
+        .call(xAxis)
         .selectAll("text")
         .style("fill", "#888")
         .style("font-family", "JetBrains Mono");
+
+    const yAxis = d3.axisLeft(y)
+        .ticks(5)
+        .tickFormat(d => d + "%");
 
     svg.append('g')
         .attr('class', 'axis axis-y')
-        .call(d3.axisLeft(y).ticks(5).tickFormat(d => d + "%"))
+        .call(yAxis)
         .selectAll("text")
         .style("fill", "#888")
         .style("font-family", "JetBrains Mono");
 
-    // 8. Tooltip Interactivo
+    // 8. Tooltip
     if (config.interactive) {
-        const tooltip = d3.select('body').append('div')
-            .attr('class', 'tooltip')
-            .style('opacity', 0);
+        const tooltip = d3.select('body').selectAll('.tooltip-ecg').data([0]);
+        const tooltipEnter = tooltip.enter().append('div').attr('class', 'tooltip tooltip-ecg').style('opacity', 0);
+        const tooltipDiv = tooltip.merge(tooltipEnter);
         
         svg.selectAll('.dot')
             .data(data)
@@ -125,14 +144,14 @@ export function createECG(containerId, data, simulations, options = {}) {
             .style('cursor', 'pointer')
             .on('mouseover', function(event, d) {
                 d3.select(this).transition().duration(100).attr('r', 8);
-                tooltip.style('opacity', 1)
+                tooltipDiv.style('opacity', 1)
                     .html(`<strong>${d.fecha}</strong><br>Valor: ${d.valor.toFixed(2)}%`)
                     .style('left', (event.pageX + 15) + 'px')
                     .style('top', (event.pageY - 40) + 'px');
             })
             .on('mouseout', function() {
                 d3.select(this).transition().duration(100).attr('r', 5);
-                tooltip.style('opacity', 0);
+                tooltipDiv.style('opacity', 0);
             });
     }
 }
