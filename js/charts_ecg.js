@@ -10,8 +10,6 @@ export function createECG(containerId, data, simulations, options = {}) {
     };
     
     const config = { ...defaults, ...options };
-    
-    // 1. Limpiar contenedor previo
     const container = d3.select(`#${containerId}`);
     container.html('');
     
@@ -23,7 +21,6 @@ export function createECG(containerId, data, simulations, options = {}) {
     const width = config.width - config.margin.left - config.margin.right;
     const height = config.height - config.margin.top - config.margin.bottom;
     
-    // 2. Definir Escalas
     const x = d3.scaleLinear()
         .domain([0, data.length - 1])
         .range([0, width]);
@@ -32,126 +29,101 @@ export function createECG(containerId, data, simulations, options = {}) {
         .domain([0, 100])
         .range([height, 0]);
     
-    // 3. Crear SVG y Grupo Principal
     const svg = container.append('svg')
         .attr('width', config.width)
         .attr('height', config.height)
         .append('g')
         .attr('transform', `translate(${config.margin.left},${config.margin.top})`);
 
-    // 4. Renderizar Bandas de Estado (Fondo)
+    // Fondo: Bandas de estado
     data.forEach((d, i) => {
         if (i < data.length - 1) {
-            const x1 = x(i);
-            const x2 = x(i + 1);
-            
-            let color = '#00cc66'; // Verde
-            if (d.valor > 65) color = '#ff3366'; // Rojo
-            else if (d.valor > 35) color = '#ffaa00'; // Amarillo
+            let color = '#00cc66'; 
+            if (d.valor > 65) color = '#ff3366'; 
+            else if (d.valor > 35) color = '#ffaa00'; 
             
             svg.append('rect')
-                .attr('x', x1)
+                .attr('x', x(i))
                 .attr('y', 0)
-                .attr('width', x2 - x1)
+                .attr('width', x(i + 1) - x(i))
                 .attr('height', height)
                 .style('fill', color)
-                .style('opacity', 0.05)
-                .style('pointer-events', 'none');
+                .style('opacity', 0.05);
         }
     });
 
-    // 5. Renderizar Área de Incertidumbre - CORRECCIÓN DE ERROR DE REFERENCIA
+    // ÁREA DE INCERTIDUMBRE - REFACTORIZADA PARA EVITAR ReferenceError
     if (simulations && simulations.p5 && simulations.p95) {
         const areaGenerator = d3.area()
+            .curve(d3.curveMonotoneX)
             .x((d, i) => x(i))
             .y0((d, i) => {
-                // Validación explícita de i y del valor en el array de simulaciones
-                const val = (simulations.p5 && simulations.p5[i] !== undefined) 
+                // Validación de existencia de datos en el array de simulación
+                const val = (simulations.p5 && typeof simulations.p5[i] !== 'undefined') 
                             ? simulations.p5[i] 
                             : d.valor;
                 return y(val);
             })
             .y1((d, i) => {
-                const val = (simulations.p95 && simulations.p95[i] !== undefined) 
+                const val = (simulations.p95 && typeof simulations.p95[i] !== 'undefined') 
                             ? simulations.p95[i] 
                             : d.valor;
                 return y(val);
-            })
-            .curve(d3.curveMonotoneX);
+            });
 
         svg.append('path')
-            .datum(data)
+            .attr('d', areaGenerator(data)) // Pasamos data directamente aquí
             .attr('fill', '#4466aa')
             .attr('fill-opacity', 0.15)
             .attr('stroke', 'none')
-            .attr('class', 'uncertainty-area')
-            .attr('d', areaGenerator);
+            .attr('pointer-events', 'none');
     }
 
-    // 6. Línea de Valor Observado
+    // LÍNEA PRINCIPAL
     const lineGenerator = d3.line()
+        .curve(d3.curveMonotoneX)
         .x((d, i) => x(i))
-        .y(d => y(d.valor))
-        .curve(d3.curveMonotoneX);
+        .y(d => y(d.valor));
 
     svg.append('path')
-        .datum(data)
+        .attr('d', lineGenerator(data)) // Pasamos data directamente aquí
         .attr('fill', 'none')
         .attr('stroke', '#ffffff')
         .attr('stroke-width', 2)
-        .attr('class', 'observed-line')
-        .attr('d', lineGenerator)
         .style('filter', 'drop-shadow(0px 0px 2px rgba(255,255,255,0.5))');
 
-    // 7. Ejes
-    const xAxis = d3.axisBottom(x)
-        .ticks(data.length)
-        .tickFormat(i => data[i]?.fecha || '');
-
+    // EJES
     svg.append('g')
-        .attr('class', 'axis axis-x')
         .attr('transform', `translate(0,${height})`)
-        .call(xAxis)
-        .selectAll("text")
-        .style("fill", "#888")
-        .style("font-family", "JetBrains Mono");
-
-    const yAxis = d3.axisLeft(y)
-        .ticks(5)
-        .tickFormat(d => d + "%");
+        .call(d3.axisBottom(x).ticks(data.length).tickFormat(i => data[i]?.fecha || ''))
+        .selectAll("text").style("fill", "#888");
 
     svg.append('g')
-        .attr('class', 'axis axis-y')
-        .call(yAxis)
-        .selectAll("text")
-        .style("fill", "#888")
-        .style("font-family", "JetBrains Mono");
+        .call(d3.axisLeft(y).ticks(5).tickFormat(d => d + "%"))
+        .selectAll("text").style("fill", "#888");
 
-    // 8. Tooltip
+    // TOOLTIPS
     if (config.interactive) {
-        const tooltip = d3.select('body').selectAll('.tooltip-ecg').data([0]);
-        const tooltipEnter = tooltip.enter().append('div').attr('class', 'tooltip tooltip-ecg').style('opacity', 0);
-        const tooltipDiv = tooltip.merge(tooltipEnter);
+        const tooltip = d3.select('body').selectAll('.tooltip-ecg').data([0])
+            .join('div').attr('class', 'tooltip tooltip-ecg').style('opacity', 0);
         
         svg.selectAll('.dot')
-            .data(data)
-            .enter().append('circle')
+            .data(data).enter().append('circle')
             .attr('cx', (d, i) => x(i))
             .attr('cy', d => y(d.valor))
             .attr('r', 5)
             .style('fill', '#c9a84c')
-            .style('opacity', 0.8)
-            .style('cursor', 'pointer')
+            .style('opacity', 0.5)
             .on('mouseover', function(event, d) {
-                d3.select(this).transition().duration(100).attr('r', 8);
-                tooltipDiv.style('opacity', 1)
+                d3.select(this).attr('r', 8).style('opacity', 1);
+                tooltip.style('opacity', 1)
                     .html(`<strong>${d.fecha}</strong><br>Valor: ${d.valor.toFixed(2)}%`)
                     .style('left', (event.pageX + 15) + 'px')
                     .style('top', (event.pageY - 40) + 'px');
             })
             .on('mouseout', function() {
-                d3.select(this).transition().duration(100).attr('r', 5);
-                tooltipDiv.style('opacity', 0);
+                d3.select(this).attr('r', 5).style('opacity', 0.5);
+                tooltip.style('opacity', 0);
             });
     }
 }
