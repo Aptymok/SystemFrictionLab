@@ -52,9 +52,9 @@ async function initDashboard() {
     });
     
     // Calcular deltas para matriz de acoplamiento
-    const waterData = await loadMetricData('ags', 'water');
-    const integrityData = await loadMetricData('ags', 'integrity');
-    const perturbationData = await loadMetricData('ags', 'perturbation');
+const waterData = await loadMetricData('ags', 'agua');
+const integrityData = await loadMetricData('ags', 'integridad');
+const perturbationData = await loadMetricData('ags', 'perturbacion');
     
     const getLastTwoAvg = (data) => {
         if (!data || !data[0] || !data[0].serie_historica) return 50;

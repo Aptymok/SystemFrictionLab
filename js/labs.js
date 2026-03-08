@@ -6,7 +6,7 @@ import { createECG } from './charts_ecg.js';
 async function initLabs() {
     const urlParams = new URLSearchParams(window.location.search);
     const metricId = urlParams.get('metrica') || 'estres_hidrico';
-    const category = urlParams.get('categoria') || 'water';
+    const category = urlParams.get('categoria') || 'agua';
     
     // Cargar datos de la métrica
     const metrics = await loadMetricData('ags', category);
