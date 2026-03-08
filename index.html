@@ -1,37 +1,563 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>System Friction Lab | Home</title>
-    <link rel="stylesheet" href="css/main.css">
-    <style>
-        body.lab-mode { background: #ffffff; color: #0044ff; font-family: 'Inter', sans-serif; margin: 0; overflow: hidden; }
-        .electro-container { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100%; height: 300px; }
-        /* El Pulso Azul Vivo */
-        .heartbit { width: 100%; height: 2px; background: #0044ff; position: absolute; top: 50%; box-shadow: 0 0 20px #0044ff; animation: bit 1.5s infinite; }
-        @keyframes bit {
-            0% { opacity: 0.2; transform: scaleY(1); }
-            50% { opacity: 1; transform: scaleY(3); }
-            100% { opacity: 0.2; transform: scaleY(1); }
-        }
-        .ui-overlay { position: relative; z-index: 10; padding: 50px; text-align: center; }
-        .nav-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 900px; margin: 100px auto; }
-        .btn-lab { border: 1px solid #0044ff; padding: 20px; text-decoration: none; color: #0044ff; transition: 0.3s; }
-        .btn-lab:hover { background: #0044ff; color: #fff; }
-        .btn-sombra { background: #000; color: #ffbf00; border: 1px solid #ffbf00; padding: 20px; text-decoration: none; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>System Friction · Scorecard</title>
+
+  <!-- CSS PRINCIPAL: El que me proporcionaste (main.css v1.1) -->
+  <style>
+    /* ======================================================
+       SYSTEM FRICTION MAIN.CSS v1.1 (Tu código integro)
+       ====================================================== */
+    /*  0. Tokens  */
+    :root {
+      /* Surface */
+      --bg:       #080807;
+      --surface:  #0f0f0e;
+      --surface2: #141413;
+      --border:   #222220;
+      --border2:  #2c2c28;
+
+      /* Text */
+      --text:     #d8d4c8;
+      --text-dim: #7a7670;
+      --text-faint:#3e3c38;
+
+      /* Accent */
+      --gold:     #c9a84c;
+      --gold-dim: #7a6530;
+
+      /* Status */
+      --ok:       #3a6b4a;
+      --ok-text:  #5a9b6e;
+      --warn:     #8a5c18;
+      --warn-text:#c9892a;
+      --crit:     #782020;
+      --crit-text:#b84040;
+      --frac:     #4a1a6a;
+      --frac-text:#8040b8;
+      --opq:      #1a3a5a;
+      --opq-text: #4070a0;
+      --emrg:     #8b0000;
+      --emrg-text:#ff4040;
+
+      /* Type */
+      --serif: Georgia, 'Times New Roman', serif;
+      --mono:  'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+
+      /* Space (mobile base) */
+      --gap:    1.2rem;
+      --gap-sm: 0.6rem;
+      --gap-lg: 2.4rem;
+      --r:      2px;
+
+      /* Transitions */
+      --ease: cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /*  1. Reset  */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--serif);
+      font-size: 1rem;
+      line-height: 1.65;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    a { color: var(--gold); text-decoration: none; transition: color 0.2s var(--ease); }
+    a:hover { color: var(--text); }
+    img { max-width: 100%; display: block; }
+    button { cursor: pointer; font-family: inherit; }
+
+    /*  2. Typography scale  */
+    .t-mono    { font-family: var(--mono); }
+    .t-dim     { color: var(--text-dim); }
+    .t-faint   { color: var(--text-faint); }
+    .t-gold    { color: var(--gold); }
+    .t-ok      { color: var(--ok-text); }
+    .t-warn    { color: var(--warn-text); }
+    .t-crit    { color: var(--crit-text); }
+    .t-frac    { color: var(--frac-text); }
+    .t-opq     { color: var(--opq-text); }
+    .t-emrg    { color: var(--emrg-text); }
+
+    /*  3. Status badges  */
+    .badge {
+      display: inline-flex; align-items: center;
+      font-family: var(--mono);
+      font-size: 0.55rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 0.2em 0.6em;
+      border-radius: var(--r);
+      border: 1px solid;
+      white-space: nowrap;
+    }
+    .badge-ok      { color: var(--ok-text);   border-color: var(--ok);   background: rgba(58,107,74,0.08); }
+    .badge-warn    { color: var(--warn-text); border-color: var(--warn); background: rgba(138,92,24,0.08); }
+    .badge-crit    { color: var(--crit-text); border-color: var(--crit); background: rgba(120,32,32,0.10); }
+    .badge-frac    { color: var(--frac-text); border-color: var(--frac); background: rgba(74,26,106,0.10); }
+    .badge-opq     { color: var(--opq-text);  border-color: var(--opq);  background: rgba(26,58,90,0.10); }
+    .badge-emrg    { color: var(--emrg-text); border-color: var(--emrg); background: rgba(139,0,0,0.12); animation: pulse-emrg 2s ease-in-out infinite; }
+    @keyframes pulse-emrg { 0%,100%{opacity:1} 50%{opacity:0.6} }
+
+    /*  4. Layout shell  */
+    .site-wrap   { display: flex; flex-direction: column; min-height: 100vh; }
+    .site-main   { flex: 1; }
+
+    /*  5. Topbar (minimal, no traditional nav)  */
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 var(--gap);
+      height: 44px;
+      background: rgba(8,8,7,0.88);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+    }
+    .topbar__brand {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.15em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+    .topbar__brand span { color: var(--gold); }
+    .topbar__nav {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+    .topbar__nav a {
+      font-family: var(--mono);
+      font-size: 0.6rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    .topbar__nav a:hover {
+      color: var(--text);
+    }
+    .topbar__ihg {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      color: var(--crit-text);
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .topbar__ihg-dot {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: var(--crit-text);
+      animation: pulse-emrg 2s ease-in-out infinite;
+    }
+
+    /*  6. Dashboard hero  */
+    .hero {
+      min-height: 60vh;
+      padding-top: 44px;
+      display: flex; flex-direction: column;
+      justify-content: center; align-items: center;
+      text-align: center;
+      padding-left: var(--gap); padding-right: var(--gap);
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(ellipse 60% 40% at 50% 60%, rgba(201,168,76,0.03) 0%, transparent 70%),
+        radial-gradient(ellipse 80% 60% at 50% 100%, rgba(120,32,32,0.04) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .hero__postulate {
+      font-family: var(--serif);
+      font-size: clamp(0.7rem, 2.5vw, 0.85rem);
+      color: var(--text-dim);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 1.2rem;
+    }
+    .hero__formula {
+      font-family: var(--mono);
+      font-size: clamp(2rem, 8vw, 4.5rem);
+      font-weight: 400;
+      color: var(--text);
+      letter-spacing: -0.02em;
+      line-height: 1;
+      margin-bottom: 1rem;
+      position: relative;
+    }
+    .hero__formula em {
+      font-style: normal;
+      color: var(--gold);
+    }
+    .hero__sub {
+      font-family: var(--mono);
+      font-size: clamp(0.6rem, 2vw, 0.72rem);
+      color: var(--text-faint);
+      letter-spacing: 0.06em;
+      margin-bottom: 1.5rem;
+    }
+    .hero__event {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      color: var(--crit-text);
+      border: 1px solid rgba(120,32,32,0.3);
+      padding: 0.4em 0.9em;
+      border-radius: var(--r);
+      background: rgba(120,32,32,0.06);
+    }
+
+    /*  7. Dashboard section  */
+    .section {
+      padding: var(--gap-lg) var(--gap);
+      border-top: 1px solid var(--border);
+    }
+    .section--dashboard {
+      background: var(--surface);
+    }
+    .section__label {
+      font-family: var(--mono);
+      font-size: 0.58rem;
+      color: var(--text-faint);
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      margin-bottom: var(--gap);
+      display: flex; align-items: center; gap: 0.6rem;
+    }
+    .section__label::after {
+      content: ''; flex: 1; height: 1px; background: var(--border);
+    }
+
+    /*  8. Gauge grid (mobile: 1col / desktop: auto)  */
+    .gauge-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--gap);
+      margin-bottom: var(--gap-lg);
+    }
+    .gauge-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: var(--gap);
+      display: flex; flex-direction: column; align-items: center; gap: 0.8rem;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s var(--ease);
+    }
+    .gauge-card:hover { border-color: var(--border2); }
+    .gauge-card__label {
+      font-family: var(--mono);
+      font-size: 0.6rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      align-self: flex-start;
+    }
+    .gauge-card__value {
+      font-family: var(--mono);
+      font-size: 2.2rem;
+      font-weight: 400;
+      line-height: 1;
+    }
+    .gauge-card__sub {
+      font-family: var(--mono);
+      font-size: 0.62rem;
+      color: var(--text-faint);
+      text-align: center;
+    }
+
+    /* SVG gauge containers */
+    .gauge-svg { width: 100%; max-width: 180px; height: auto; }
+
+    /* Sparkline path container */
+    .sparkline-wrap { width: 100%; overflow: hidden; }
+    .sparkline-wrap svg { width: 100%; display: block; }
+
+    /*  9. NTI toggle  */
+    .nti-toggle-wrap {
+      display: flex; align-items: center; gap: var(--gap);
+      flex-wrap: wrap; margin-bottom: var(--gap);
+    }
+    .nti-toggle {
+      display: flex; align-items: center; gap: 0.5rem;
+      font-family: var(--mono); font-size: 0.65rem;
+      color: var(--text-dim);
+      cursor: pointer; user-select: none;
+    }
+    .nti-toggle input { display: none; }
+    .nti-toggle__track {
+      width: 32px; height: 18px;
+      border-radius: 9px;
+      border: 1px solid var(--border2);
+      background: var(--surface);
+      position: relative; transition: background 0.2s var(--ease);
+    }
+    .nti-toggle__track::after {
+      content: ''; position: absolute;
+      top: 2px; left: 2px;
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      background: var(--text-faint);
+      transition: transform 0.2s var(--ease), background 0.2s var(--ease);
+    }
+    .nti-toggle input:checked + .nti-toggle__track { background: rgba(78,40,140,0.3); border-color: var(--frac); }
+    .nti-toggle input:checked + .nti-toggle__track::after { transform: translateX(14px); background: var(--frac-text); }
+    .nti-result {
+      font-family: var(--mono); font-size: 0.72rem;
+      color: var(--text-dim); padding: 0.3em 0.7em;
+      border: 1px solid var(--border); border-radius: var(--r);
+      background: var(--surface2);
+      transition: all 0.3s var(--ease);
+    }
+
+    /*  10. Dimension expander  */
+    .dim-toggle-btn {
+      font-family: var(--mono); font-size: 0.65rem;
+      color: var(--text-dim); background: var(--surface2);
+      border: 1px solid var(--border); border-radius: var(--r);
+      padding: 0.5em 1em;
+      transition: all 0.2s var(--ease);
+    }
+    .dim-toggle-btn:hover { border-color: var(--border2); color: var(--text); }
+    .dim-panel {
+      display: none;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: var(--gap);
+      margin-top: var(--gap);
+      animation: fadeSlide 0.25s var(--ease);
+    }
+    .dim-panel.open { display: block; }
+    @keyframes fadeSlide { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:translateY(0)} }
+
+    .dim-table {
+      width: 100%; border-collapse: collapse;
+      font-family: var(--mono); font-size: 0.68rem;
+    }
+    .dim-table th {
+      text-align: left; padding: 0.4rem 0.6rem;
+      border-bottom: 1px solid var(--border);
+      color: var(--gold); font-weight: 400;
+      font-size: 0.58rem; letter-spacing: 0.06em; text-transform: uppercase;
+    }
+    .dim-table td {
+      padding: 0.4rem 0.6rem;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-dim); vertical-align: middle;
+    }
+    .dim-table tr:last-child td { border-bottom: none; }
+    .dim-table .mini-bar-wrap { display: flex; align-items: center; gap: 0.5rem; }
+    .dim-bar { height: 3px; border-radius: 2px; min-width: 2px; }
+
+    /*  17. Footer  */
+    .site-footer {
+      border-top: 1px solid var(--border);
+      padding: var(--gap-lg) var(--gap);
+      display: flex; flex-direction: column; gap: var(--gap);
+    }
+    .site-footer__top {
+      display: flex; justify-content: space-between;
+      align-items: flex-start; flex-wrap: wrap; gap: var(--gap);
+    }
+    .site-footer__brand { font-family: var(--mono); font-size: 0.65rem; color: var(--text-dim); }
+    .site-footer__brand strong { color: var(--text); }
+    .site-footer__links { display: flex; gap: var(--gap); flex-wrap: wrap; }
+    .site-footer__links a { font-family: var(--mono); font-size: 0.62rem; color: var(--text-faint); }
+    .site-footer__links a:hover { color: var(--text-dim); }
+    .site-footer__bottom {
+      font-family: var(--mono); font-size: 0.58rem;
+      color: var(--text-faint); border-top: 1px solid var(--border);
+      padding-top: var(--gap); display: flex;
+      justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;
+    }
+
+    /*  18. Utility / helpers  */
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+    .loading { font-family: var(--mono); font-size: 0.65rem; color: var(--text-faint); }
+    .err     { font-family: var(--mono); font-size: 0.65rem; color: var(--crit-text); }
+
+    /* Formula display inline (not MathJax) */
+    .formula-inline {
+      font-family: var(--mono); font-size: 0.82rem;
+      background: var(--surface2); border: 1px solid var(--border);
+      padding: 0.4em 0.8em; border-radius: var(--r);
+      display: inline-block; color: var(--text);
+    }
+    .formula-inline em { font-style: normal; color: var(--gold); }
+
+    /* Horizontal rule */
+    hr.rule { border: none; border-top: 1px solid var(--border); margin: var(--gap-lg) 0; }
+
+    /*  19. Responsive  Tablet 520px+  */
+    @media (min-width: 520px) {
+      .gauge-grid  { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    /*  20. Responsive  Desktop 860px+  */
+    @media (min-width: 860px) {
+      :root { --gap: 1.6rem; --gap-lg: 3.2rem; }
+
+      .topbar      { padding: 0 2rem; }
+      .hero        { padding-left: 2rem; padding-right: 2rem; }
+      .section     { padding: var(--gap-lg) 2rem; }
+      .site-footer { padding: var(--gap-lg) 2rem; }
+
+      .gauge-grid  { grid-template-columns: repeat(4, 1fr); }
+    }
+  </style>
 </head>
-<body class="lab-mode">
-    <div class="electro-container">
-        <div class="heartbit"></div>
+<body>
+  <div class="site-wrap">
+    <!-- TOPBAR: Navegación principal (ahora con más enlaces) -->
+    <div class="topbar">
+      <div class="topbar__brand">
+        <span>⏣</span> SYSTEM FRICTION <span>· SCORECARD</span>
+      </div>
+      <div class="topbar__nav">
+        <a href="/">INICIO</a>
+        <a href="/repositorio/">REPOSITORIO</a>
+        <a href="/nodo_ags/">NODO AGS</a>
+        <a href="/lab/">LAB</a>
+        <a href="/docs/">DOCS</a>
+      </div>
+      <div class="topbar__ihg">
+        <span class="topbar__ihg-dot"></span> IHG -0.620
+      </div>
     </div>
-    <div class="ui-overlay">
-        <h1 style="letter-spacing: 5px;">SYSTEM FRICTION LAB</h1>
-        <div class="nav-grid">
-            <a href="labs.html" class="btn-lab">ENTRAR AL LABORATORIO</a>
-            <a href="research.html" class="btn-lab">INVESTIGACIÓN (MIHM)</a>
-            <a href="core/nodo_aptymok.md" class="btn-sombra">MODO SOMBRA</a>
+
+    <main class="site-main">
+      <!-- HERO: La postulación central -->
+      <section class="hero">
+        <div class="hero__postulate">Postulado de partida</div>
+        <div class="hero__formula">
+          f = (<em>t</em>/<em>T</em>) + <em>O</em>
         </div>
-    </div>
+        <div class="hero__sub">
+          La fricción sistémica como razón temporal más opacidad.
+        </div>
+        <div class="hero__event">
+          ⚡ EVENTO CRÍTICO · ACTOR HEGEMÓNICO · FEB 2026
+        </div>
+      </section>
+
+      <!-- DASHBOARD: El Scorecard principal -->
+      <section class="section section--dashboard">
+        <div class="section__label">SCORECARD · MÉTRICAS AGREGADAS</div>
+
+        <!-- Grid de 4 tarjetas (el scorecard) -->
+        <div class="gauge-grid">
+          <!-- Tarjeta 1: IHG Global -->
+          <div class="gauge-card">
+            <div class="gauge-card__label">IHG GLOBAL</div>
+            <div class="gauge-card__value t-crit">-0.620</div>
+            <div class="gauge-card__sub">Índice de Gobernanza Homeostática</div>
+            <span class="badge badge-emrg">PROTOCOLO EMERGENCIA</span>
+          </div>
+
+          <!-- Tarjeta 2: NTI del Sistema -->
+          <div class="gauge-card">
+            <div class="gauge-card__label">NTI SISTEMA</div>
+            <div class="gauge-card__value t-crit">0.351</div>
+            <div class="gauge-card__sub">Trazabilidad (UCAP: 0.40)</div>
+            <span class="badge badge-crit">INFRA-UCAP</span>
+          </div>
+
+          <!-- Tarjeta 3: Probabilidad de Fractura -->
+          <div class="gauge-card">
+            <div class="gauge-card__label">FRACTURA (2030)</div>
+            <div class="gauge-card__value t-warn">71%</div>
+            <div class="gauge-card__sub">P(colapso) · Simulación Monte Carlo</div>
+            <span class="badge badge-warn">ALTA PROBABILIDAD</span>
+          </div>
+
+          <!-- Tarjeta 4: Nodo AGS -->
+          <div class="gauge-card">
+            <div class="gauge-card__label">NODO AGS</div>
+            <div class="gauge-card__value t-gold">POST</div>
+            <div class="gauge-card__sub">Muerte actor + 252 narcobloqueos</div>
+            <a href="/nodo_ags/" class="badge badge-opq">VER ANÁLISIS →</a>
+          </div>
+        </div>
+
+        <!-- Contexto adicional: El resumen del evento -->
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+          <div style="font-family: var(--mono); font-size: 0.7rem; color: var(--text-dim);">
+            <span class="t-gold">⟐</span> Última actualización: 09 MAR 2026 · Seed 42
+          </div>
+          <div style="display: flex; gap: 0.8rem;">
+            <span class="badge badge-frac">IHG post-fractura: −0.620</span>
+            <span class="badge badge-frac">UCAP: −0.500</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECCIÓN: Acceso rápido a documentos clave (herencia del legacy) -->
+      <section class="section">
+        <div class="section__label">NÚCLEO OPERATIVO · DOCUMENTOS</div>
+        <div class="gauge-grid" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
+          <a href="/core/core-00/" class="gauge-card" style="text-decoration: none; color: inherit; display: flex;">
+            <span class="gauge-card__label t-gold">CORE-00</span>
+            <span class="gauge-card__sub">La lectura modifica lo que se encuentra después.</span>
+          </a>
+          <a href="/docs/doc-01/" class="gauge-card" style="text-decoration: none; color: inherit; display: flex;">
+            <span class="gauge-card__label t-gold">DOC-01</span>
+            <span class="gauge-card__sub">Patrón de fricción · Umbrales.</span>
+          </a>
+          <a href="/docs/doc-05/" class="gauge-card" style="text-decoration: none; color: inherit; display: flex;">
+            <span class="gauge-card__label t-gold">DOC-05</span>
+            <span class="gauge-card__sub">Métrica de opacidad estructural.</span>
+          </a>
+          <a href="/docs/doc-10/" class="gauge-card" style="text-decoration: none; color: inherit; display: flex;">
+            <span class="gauge-card__label t-gold">DOC-10</span>
+            <span class="gauge-card__sub">Intervención en sistemas fracturados.</span>
+          </a>
+        </div>
+      </section>
+    </main>
+
+    <!-- FOOTER: Unificado, con licencia, contacto y enlaces a los dos mundos -->
+    <footer class="site-footer">
+      <div class="site-footer__top">
+        <div class="site-footer__brand">
+          <strong>System Friction</strong> · v1.1
+        </div>
+        <div class="site-footer__links">
+          <a href="https://systemfriction.org">systemfriction.org</a>
+          <a href="https://github.com/aptymok/system-friction-main">GitHub (legacy)</a>
+          <a href="https://github.com/aptymok/SystemFrictionLab">GitHub (lab)</a>
+          <a href="/licencia/">Licencia CC BY 4.0</a>
+        </div>
+      </div>
+      <div class="site-footer__bottom">
+        <div>© 2026 Juan Antonio Marín Liera · aptymok@gmail.com</div>
+        <div>Observaciones que desafíen este marco son bienvenidas.</div>
+      </div>
+      <!-- Trazabilidad técnica del footer (como en tu ejemplo) -->
+      <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; padding-top: var(--gap); margin-top: var(--gap); border-top: 1px solid var(--border); color: var(--text-faint); font-size: 0.55rem; font-family: var(--mono);">
+        <span>seed 42</span>
+        <span>Monte Carlo 50k</span>
+        <span>IHG −0.620</span>
+        <span>NTI 0.351</span>
+        <span>P(colapso 2030) 71%</span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Pequeño script para la fecha y algún detalle dinámico (opcional) -->
+  <script>
+    // Pequeño script para actualizar el año en el footer si se desea
+    document.addEventListener('DOMContentLoaded', function() {
+      // Podrías agregar aquí lógica para resaltar la navegación activa si lo deseas
+    });
+  </script>
 </body>
 </html>
