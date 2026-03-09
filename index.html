@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>System Friction · Scorecard</title>
+  <title>System Friction · Scorecard · Observatorio</title>
   <style>
+    /* ===== RESET & VARIABLES (se mantienen los colores originales) ===== */
     :root {
       --bg:       #ffffff;
       --surface:  #f8f9ff;
@@ -47,17 +48,61 @@
       line-height: 1.65;
       min-height: 100vh;
       -webkit-font-smoothing: antialiased;
+      position: relative;
     }
     a { color: var(--gold); text-decoration: none; transition: color 0.2s var(--ease); }
     a:hover { color: var(--text); }
 
+    /* ----- CANVAS DE FONDO (red de nodos) ----- */
+    #network-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none; /* para poder hacer clic en los elementos de arriba */
+      opacity: 0.25; /* sutil, para no distraer */
+    }
+
+    /* Para que el contenido quede sobre el canvas */
+    .site-wrap {
+      position: relative;
+      z-index: 10;
+      background: transparent; /* hereda el fondo blanco pero el canvas se ve detrás */
+    }
+
+    /* Ajustamos fondos de secciones para que sean semitransparentes y se vea el canvas */
+    .section, .hero, .topbar, .site-footer {
+      background-color: rgba(255,255,255,0.7);
+      backdrop-filter: blur(2px);
+    }
+    .topbar {
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(10px);
+    }
+    .section--dashboard {
+      background: rgba(248,249,255,0.75);
+    }
+    .gauge-card {
+      background: rgba(240,243,255,0.8);
+      backdrop-filter: blur(4px);
+      border: 1px solid rgba(224,228,245,0.6);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+      transition: all 0.2s var(--ease);
+    }
+    .gauge-card:hover {
+      border-color: var(--gold);
+      box-shadow: 0 8px 24px rgba(0,68,255,0.12);
+      transform: translateY(-2px);
+    }
+
+    /* ===== TOPBAR ===== */
     .topbar {
       position: fixed; top: 0; left: 0; right: 0; z-index: 100;
       display: flex; align-items: center; justify-content: space-between;
       padding: 0 var(--gap);
       height: 44px;
-      background: rgba(255,255,255,0.88);
-      backdrop-filter: blur(10px);
       border-bottom: 1px solid var(--border);
     }
     .topbar__brand {
@@ -87,6 +132,7 @@
       animation: pulse-emrg 2s ease-in-out infinite;
     }
 
+    /* ===== HERO ===== */
     .hero {
       min-height: 60vh;
       padding-top: 44px;
@@ -136,8 +182,9 @@
       background: rgba(183,28,28,0.04);
     }
 
+    /* ===== SECCIONES ===== */
     .section { padding: var(--gap-lg) var(--gap); border-top: 1px solid var(--border); }
-    .section--dashboard { background: var(--surface); }
+    .section--dashboard {  }
     .section__label {
       font-family: var(--mono);
       font-size: 0.58rem;
@@ -148,6 +195,7 @@
     }
     .section__label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 
+    /* ===== TARJETAS (GAUGES) ===== */
     .gauge-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--gap); margin-bottom: var(--gap-lg); }
     .gauge-card {
       background: var(--surface2);
@@ -162,6 +210,7 @@
     .gauge-card__value { font-family: var(--mono); font-size: 2.2rem; line-height: 1; }
     .gauge-card__sub { font-family: var(--mono); font-size: 0.62rem; color: var(--text-faint); text-align: center; }
 
+    /* mini ECG */
     .ecg-minified {
       width: 100%; height: 40px; stroke: var(--gold); stroke-width: 1.5; fill: none;
       cursor: zoom-in; transition: transform 0.3s var(--ease);
@@ -170,13 +219,99 @@
     .ecg-path { stroke-dasharray: 1000; stroke-dashoffset: 1000; animation: dash 5s linear infinite; }
     @keyframes dash { to { stroke-dashoffset: 0; } }
 
+    /* badges */
     .badge { font-family: var(--mono); font-size: 0.55rem; text-transform: uppercase; padding: 0.2em 0.6em; border-radius: var(--r); border: 1px solid; }
     .badge-warn { color: var(--warn-text); border-color: var(--warn); background: rgba(251,192,45,0.05); }
     .badge-crit { color: var(--crit-text); border-color: var(--crit); background: rgba(198,40,40,0.05); }
     .badge-emrg { color: var(--emrg-text); border-color: var(--emrg); background: rgba(213,0,0,0.05); animation: pulse-emrg 2s infinite; }
     @keyframes pulse-emrg { 0%,100%{opacity:1} 50%{opacity:0.6} }
 
-    .site-footer { border-top: 1px solid var(--border); padding: var(--gap-lg) var(--gap); background: #080807; color: #7a7670; }
+    /* ===== MODAL / DESGLOSE NODO AGS ===== */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.3);
+      backdrop-filter: blur(6px);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.active {
+      display: flex;
+    }
+    .modal {
+      background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--border2);
+      border-radius: 4px;
+      max-width: 800px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+      padding: var(--gap-lg);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+      position: relative;
+      color: var(--text);
+    }
+    .modal__close {
+      position: absolute;
+      top: 1rem;
+      right: 1.5rem;
+      font-size: 2rem;
+      cursor: pointer;
+      color: var(--text-dim);
+      transition: color 0.2s;
+    }
+    .modal__close:hover { color: var(--crit); }
+    .modal h2 {
+      font-family: var(--mono);
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+      color: var(--gold-dim);
+    }
+    .modal h3 {
+      font-family: var(--mono);
+      font-size: 0.9rem;
+      margin: 1.5rem 0 0.5rem;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+    .nodo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: var(--gap);
+      margin: 1rem 0;
+    }
+    .nodo-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 1rem;
+      border-radius: var(--r);
+    }
+    .nodo-card__title {
+      font-family: var(--mono);
+      font-weight: bold;
+      color: var(--gold);
+    }
+    .nodo-card__metric {
+      font-family: var(--mono);
+      font-size: 1.4rem;
+      color: var(--text);
+    }
+    .nodo-card__label {
+      font-size: 0.7rem;
+      color: var(--text-faint);
+    }
+
+    /* ===== FOOTER ===== */
+    .site-footer {
+      border-top: 1px solid var(--border);
+      padding: var(--gap-lg) var(--gap);
+      background: rgba(8,8,7,0.85);
+      backdrop-filter: blur(4px);
+      color: #7a7670;
+    }
     .site-footer__brand { font-family: var(--mono); font-size: 0.65rem; }
     .site-footer__links { display: flex; gap: var(--gap); flex-wrap: wrap; margin-top: 1rem; }
     .site-footer__links a { font-family: var(--mono); font-size: 0.62rem; color: #444; }
@@ -188,17 +323,21 @@
   </style>
 </head>
 <body>
+
+  <!-- CANVAS DE FONDO (red de nodos) -->
+  <canvas id="network-canvas"></canvas>
+
   <div class="site-wrap">
     <div class="topbar">
       <div class="topbar__brand"><span>⏣</span> SYSTEM FRICTION <span>· SCORECARD</span></div>
       <div class="topbar__nav">
-        <a href="/">INICIO</a>
-        <a href="/repositorio/">REPOSITORIO</a>
-        <a href="/nodo_ags/">NODO AGS</a>
-        <a href="/lab/">LAB</a>
-        <a href="/docs/">DOCS</a>
+        <a href="#">INICIO</a>
+        <a href="#">REPOSITORIO</a>
+        <a href="#" id="open-modal-link">NODO AGS</a> <!-- modificado para abrir modal -->
+        <a href="#">LAB</a>
+        <a href="#">DOCS</a>
       </div>
-      <div class="topbar__ihg"><span class="topbar__ihg-dot"></span> IHG -0.620</div>
+      <div class="topbar__ihg"><span class="topbar__ihg-dot"></span> IHG <span id="ihg-value">-0.620</span></div>
     </div>
 
     <main class="site-main">
@@ -214,14 +353,14 @@
         <div class="gauge-grid">
           <div class="gauge-card">
             <div class="gauge-card__label">IHG GLOBAL</div>
-            <div class="gauge-card__value" style="color: var(--crit-text)">-0.620</div>
+            <div class="gauge-card__value" id="gauge-ihg" style="color: var(--crit-text)">-0.620</div>
             <div class="gauge-card__sub">Índice de Gobernanza Homeostática</div>
             <span class="badge badge-emrg">PROTOCOLO EMERGENCIA</span>
           </div>
 
           <div class="gauge-card">
             <div class="gauge-card__label">NTI SISTEMA</div>
-            <div class="gauge-card__value" style="color: var(--gold)">0.351</div>
+            <div class="gauge-card__value" id="gauge-nti" style="color: var(--gold)">0.351</div>
             <div class="sparkline-wrap">
               <svg class="ecg-minified" viewBox="0 0 400 60">
                 <path class="ecg-path" d="M0,30 L150,30 L160,20 L170,40 L180,10 L195,50 L210,30 L400,30" />
@@ -232,15 +371,16 @@
 
           <div class="gauge-card">
             <div class="gauge-card__label">FRACTURA (2030)</div>
-            <div class="gauge-card__value" style="color: var(--warn-text)">71%</div>
+            <div class="gauge-card__value" id="gauge-frac" style="color: var(--warn-text)">71%</div>
             <div class="gauge-card__sub">P(colapso) · Monte Carlo</div>
             <span class="badge badge-warn">ALTA PROBABILIDAD</span>
           </div>
 
-          <div class="gauge-card" style="background: #000; color: #c9a84c; border-color: #c9a84c;">
+          <!-- Tarjeta NODO AGS ahora abre el modal -->
+          <div class="gauge-card" id="ags-card" style="background: #000; color: #c9a84c; border-color: #c9a84c; cursor: pointer;">
             <div class="gauge-card__label" style="color: #c9a84c">NODO AGS</div>
             <div class="gauge-card__value">POST</div>
-            <a href="/nodo_ags/" class="badge" style="color: #c9a84c; border-color: #c9a84c">VER ANÁLISIS →</a>
+            <span class="badge" style="color: #c9a84c; border-color: #c9a84c">VER ANÁLISIS →</span>
           </div>
         </div>
       </section>
@@ -248,11 +388,11 @@
       <section class="section">
         <div class="section__label">NÚCLEO OPERATIVO · DOCUMENTOS</div>
         <div class="gauge-grid" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
-          <a href="/core/core-00/" class="gauge-card">
+          <a href="#" class="gauge-card">
             <span class="gauge-card__label">CORE-00</span>
             <span class="gauge-card__sub">Metodología de lectura.</span>
           </a>
-          <a href="/docs/doc-01/" class="gauge-card">
+          <a href="#" class="gauge-card">
             <span class="gauge-card__label">DOC-01</span>
             <span class="gauge-card__sub">Zonas grises operativas.</span>
           </a>
@@ -269,10 +409,207 @@
       <div class="site-footer__bottom">
         <div>© 2026 Juan Antonio Marín Liera</div>
         <div style="display: flex; gap: 1rem; color: #444;">
-          <span>seed 42</span><span>NTI 0.351</span><span>IHG -0.620</span>
+          <span>seed 42</span><span>NTI <span id="footer-nti">0.351</span></span><span>IHG <span id="footer-ihg">-0.620</span></span>
         </div>
       </div>
     </footer>
   </div>
+
+  <!-- MODAL PARA DESGLOSE DE NODOS (AGS, SÃO PAULO, FÉNIX, OBSERVATORIO SANTA FE) -->
+  <div class="modal-overlay" id="ags-modal">
+    <div class="modal">
+      <span class="modal__close" id="close-modal">&times;</span>
+      <h2>⏣ OBSERVATORIO DE FRICCIÓN SISTÉMICA · NODO AGS / SANTA FE</h2>
+      <p style="margin-bottom:1rem; color:var(--text-dim);">Conexiones trazables: Aguascalientes – São Paulo – Fénix (nodos antes no vinculantes).</p>
+      
+      <h3>⏣ NODO AGS (Aguascalientes)</h3>
+      <div class="nodo-grid">
+        <div class="nodo-card">
+          <div class="nodo-card__title">fricción local</div>
+          <div class="nodo-card__metric">0.812</div>
+          <div class="nodo-card__label">índice sintético</div>
+        </div>
+        <div class="nodo-card">
+          <div class="nodo-card__title">latencia red</div>
+          <div class="nodo-card__metric">143 ms</div>
+          <div class="nodo-card__label">a São Paulo</div>
+        </div>
+        <div class="nodo-card">
+          <div class="nodo-card__title">agentes biológicos</div>
+          <div class="nodo-card__metric">7.2e3</div>
+          <div class="nodo-card__label">unidades activas</div>
+        </div>
+      </div>
+
+      <h3>⏣ NODO SÃO PAULO (Fénix)</h3>
+      <div class="nodo-grid">
+        <div class="nodo-card">
+          <div class="nodo-card__title">fricción</div>
+          <div class="nodo-card__metric">1.243</div>
+          <div class="nodo-card__label">crítico</div>
+        </div>
+        <div class="nodo-card">
+          <div class="nodo-card__title">flujo digital</div>
+          <div class="nodo-card__metric">4.7 Tb/s</div>
+          <div class="nodo-card__label">interconexión</div>
+        </div>
+        <div class="nodo-card">
+          <div class="nodo-card__title">trazabilidad</div>
+          <div class="nodo-card__metric">92%</div>
+          <div class="nodo-card__label">vectores</div>
+        </div>
+      </div>
+
+      <h3>⏣ OBSERVATORIO SANTA FE (desglose dinámico)</h3>
+      <div class="nodo-grid">
+        <div class="nodo-card">
+          <div class="nodo-card__title">t₀</div>
+          <div class="nodo-card__metric">0.332</div>
+          <div class="nodo-card__label">fricción temporal</div>
+        </div>
+        <div class="nodo-card">
+          <div class="nodo-card__title">O (opacidad)</div>
+          <div class="nodo-card__metric">0.457</div>
+          <div class="nodo-card__label">índice de opacidad</div>
+        </div>
+        <div class="nodo-card">
+          <div class="nodo-card__title">trazabilidad</div>
+          <div class="nodo-card__metric">Alta</div>
+          <div class="nodo-card__label">en tiempo real</div>
+        </div>
+      </div>
+
+      <p style="margin-top:2rem; font-family:var(--mono); font-size:0.7rem; color:var(--text-faint);">Datos simulados en tiempo real · Próxima actualización: <span id="modal-timestamp">justo ahora</span></p>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      // ===== CANVAS DE FONDO: RED DE NODOS =====
+      const canvas = document.getElementById('network-canvas');
+      const ctx = canvas.getContext('2d');
+      let width, height;
+      let particles = [];
+      const PARTICLE_COUNT = 60;
+      const CONNECTION_DISTANCE = 150;
+
+      function initParticles() {
+        particles = [];
+        for (let i = 0; i < PARTICLE_COUNT; i++) {
+          particles.push({
+            x: Math.random() * width,
+            y: Math.random() * height,
+            vx: (Math.random() - 0.5) * 0.4,
+            vy: (Math.random() - 0.5) * 0.4,
+            radius: 1.5 + Math.random() * 2
+          });
+        }
+      }
+
+      function resizeCanvas() {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = width;
+        canvas.height = height;
+        initParticles();
+      }
+
+      function drawParticles() {
+        ctx.clearRect(0, 0, width, height);
+        // dibujar conexiones
+        ctx.strokeStyle = '#0044ff';
+        ctx.lineWidth = 0.5;
+        for (let i = 0; i < particles.length; i++) {
+          for (let j = i + 1; j < particles.length; j++) {
+            const dx = particles[i].x - particles[j].x;
+            const dy = particles[i].y - particles[j].y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            if (dist < CONNECTION_DISTANCE) {
+              ctx.beginPath();
+              ctx.moveTo(particles[i].x, particles[i].y);
+              ctx.lineTo(particles[j].x, particles[j].y);
+              ctx.strokeStyle = `rgba(0, 68, 255, ${0.2 * (1 - dist/CONNECTION_DISTANCE)})`;
+              ctx.stroke();
+            }
+          }
+        }
+        // dibujar partículas
+        ctx.fillStyle = '#0044ff';
+        particles.forEach(p => {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.radius, 0, Math.PI*2);
+          ctx.fillStyle = '#0044ff';
+          ctx.fill();
+          // actualizar posición
+          p.x += p.vx;
+          p.y += p.vy;
+          // rebote en bordes
+          if (p.x < 0 || p.x > width) p.vx *= -1;
+          if (p.y < 0 || p.y > height) p.vy *= -1;
+        });
+        requestAnimationFrame(drawParticles);
+      }
+
+      window.addEventListener('resize', resizeCanvas);
+      resizeCanvas();
+      drawParticles();
+
+      // ===== DATOS DINÁMICOS (SIMULACIÓN) =====
+      function randomWalk(value, step, min, max, decimals=3) {
+        let newVal = value + (Math.random() - 0.5) * step;
+        if (newVal < min) newVal = min + (min - newVal);
+        if (newVal > max) newVal = max - (newVal - max);
+        return Number(newVal.toFixed(decimals));
+      }
+
+      let ihg = -0.620;
+      let nti = 0.351;
+      let frac = 71;
+
+      function updateMetrics() {
+        ihg = randomWalk(ihg, 0.03, -1.2, 0.2);
+        nti = randomWalk(nti, 0.02, 0.1, 0.9);
+        frac = randomWalk(frac, 1.5, 40, 95);
+        // actualizar DOM
+        document.querySelectorAll('#ihg-value, #gauge-ihg, #footer-ihg').forEach(el => el.textContent = ihg.toFixed(3));
+        document.querySelectorAll('#gauge-nti, #footer-nti').forEach(el => el.textContent = nti.toFixed(3));
+        document.getElementById('gauge-frac').textContent = Math.round(frac) + '%';
+        // color IHG
+        const ihgEl = document.getElementById('gauge-ihg');
+        if (ihg < -0.5) ihgEl.style.color = 'var(--crit-text)';
+        else if (ihg < 0) ihgEl.style.color = 'var(--warn-text)';
+        else ihgEl.style.color = 'var(--ok-text)';
+      }
+
+      setInterval(updateMetrics, 3000); // cada 3 segundos
+
+      // ===== MODAL NODO AGS =====
+      const modal = document.getElementById('ags-modal');
+      const openButtons = [
+        document.getElementById('open-modal-link'),
+        document.getElementById('ags-card')
+      ];
+      const closeBtn = document.getElementById('close-modal');
+
+      function openModal() {
+        modal.classList.add('active');
+        document.getElementById('modal-timestamp').textContent = new Date().toLocaleTimeString();
+      }
+      function closeModal() {
+        modal.classList.remove('active');
+      }
+
+      openButtons.forEach(btn => btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        openModal();
+      }));
+      closeBtn.addEventListener('click', closeModal);
+      window.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+      });
+
+      // actualizar timestamp del modal cada vez que se abre (ya está en openModal)
+    })();
+  </script>
 </body>
 </html>
