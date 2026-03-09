@@ -3,592 +3,560 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>System Friction · Observatorio · ECG + Gradientes</title>
+  <title>System Friction · Observatorio MIHM</title>
   <style>
-    /* ===== RESET Y VARIABLES (paleta expandida) ===== */
+    /* ===== VARIABLES Y RESET ===== */
     :root {
       --bg-dark: #0b0c0e;
-      --bg-card-start: #1e1f2a;
-      --bg-card-end: #13141c;
-      --surface-glow: rgba(0, 68, 255, 0.15);
+      --bg-card: #14151c;
       --border-dim: #2a2c3a;
-      --border-glow: #0044ff;
       --text-light: #e0e2f0;
       --text-dim: #9ca0b5;
-      --text-faint: #5f647c;
       --gold: #0044ff;
-      --gold-glow: #3a70ff;
       --ok: #2ecc71;
-      --ok-glow: rgba(46, 204, 113, 0.3);
       --warn: #f39c12;
-      --warn-glow: rgba(243, 156, 18, 0.3);
       --crit: #e74c3c;
-      --crit-glow: rgba(231, 76, 60, 0.3);
       --emrg: #ff0000;
       --mono: 'JetBrains Mono', 'Fira Code', monospace;
       --serif: Georgia, 'Times New Roman', serif;
       --gap: 1.2rem;
-      --gap-lg: 2.4rem;
-      --r: 4px;
-      --ease: cubic-bezier(0.4, 0, 0.2, 1);
     }
-
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       background: var(--bg-dark);
       color: var(--text-light);
       font-family: var(--serif);
       line-height: 1.6;
-      min-height: 100vh;
     }
 
-    /* ===== FONDO DE NODOS (más tenue para que resalten los gradientes) ===== */
-    #network-canvas {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      z-index: 0;
-      opacity: 0.15;
-      pointer-events: none;
-    }
-
-    .site-wrap {
-      position: relative;
-      z-index: 10;
-      background: transparent;
-    }
-
-    /* ===== TOPBAR (más integrada) ===== */
+    /* ===== TOPBAR ===== */
     .topbar {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 0 var(--gap);
+      position: fixed;
+      top: 0; left: 0; right: 0;
       height: 48px;
-      background: rgba(10, 10, 15, 0.8);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--border-dim);
-      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-    }
-    .topbar__brand {
+      background: #0f1015;
+      border-bottom: 1px solid #222;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
       font-family: var(--mono);
-      font-size: 0.7rem;
-      letter-spacing: 0.1em;
-      color: var(--text-dim);
-      text-transform: uppercase;
+      font-size: 0.75rem;
+      z-index: 100;
     }
-    .topbar__brand span { color: var(--gold); }
-    .topbar__nav { display: flex; gap: 1.5rem; }
-    .topbar__nav a {
-      font-family: var(--mono);
-      font-size: 0.6rem;
-      color: var(--text-dim);
-      text-transform: uppercase;
-      transition: color 0.2s;
+    #ihgIndicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
-    .topbar__nav a:hover { color: var(--gold); }
-    .topbar__ihg {
-      font-family: var(--mono);
-      font-size: 0.65rem;
-      color: var(--crit);
-      display: flex; align-items: center; gap: 0.5rem;
+    #ihgDot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--ok);
+      transition: background 0.2s;
     }
-    .topbar__ihg-dot {
-      width: 6px; height: 6px; border-radius: 50%;
-      background: var(--crit);
-      animation: pulse-crit 1.5s infinite;
-    }
-    @keyframes pulse-crit { 0% { opacity: 1; } 50% { opacity: 0.4; } }
 
-    /* ===== HERO CON GRADIENTE ===== */
+    /* ===== HERO ===== */
     .hero {
-      min-height: 40vh;
-      padding-top: 48px;
-      display: flex; flex-direction: column;
-      justify-content: center; align-items: center;
+      padding-top: 80px;
+      padding-bottom: 40px;
       text-align: center;
-      background: linear-gradient(145deg, #0f1018 0%, #1a1c28 100%);
-      border-bottom: 1px solid var(--border-dim);
-      box-shadow: inset 0 -10px 20px rgba(0,0,0,0.6);
+      border-bottom: 1px solid #222;
+      background: linear-gradient(145deg, #0f1018, #1a1c28);
     }
-    .hero__formula {
+    .hero h1 {
       font-family: var(--mono);
-      font-size: clamp(2.5rem, 10vw, 5rem);
+      font-size: clamp(2rem, 8vw, 4rem);
       background: linear-gradient(135deg, #fff 0%, var(--gold) 80%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      line-height: 1.1;
-    }
-    .hero__event {
-      background: rgba(231, 76, 60, 0.1);
-      border: 1px solid var(--crit);
-      border-radius: 20px;
-      padding: 0.3rem 1.2rem;
-      font-family: var(--mono);
-      font-size: 0.7rem;
+      margin: 0;
     }
 
-    /* ===== SECCIONES CON GRADIENTES ===== */
+    /* ===== SECCIONES ===== */
     .section {
-      padding: var(--gap-lg) var(--gap);
-      border-bottom: 1px solid var(--border-dim);
+      padding: 40px 20px;
+      border-bottom: 1px solid #222;
     }
-    .section--dashboard {
-      background: linear-gradient(0deg, #12131b 0%, #1c1d29 100%);
-    }
-    .section--lab {
-      background: linear-gradient(0deg, #0a0b12 0%, #151721 100%);
-    }
-    .section__label {
+    .section__title {
       font-family: var(--mono);
-      font-size: 0.6rem;
-      color: var(--text-faint);
+      font-size: 0.8rem;
+      color: var(--text-dim);
       text-transform: uppercase;
-      margin-bottom: var(--gap);
+      margin-bottom: 20px;
       display: flex;
       align-items: center;
-      gap: 0.8rem;
+      gap: 10px;
     }
-    .section__label::after {
+    .section__title::after {
       content: '';
       flex: 1;
       height: 1px;
-      background: linear-gradient(90deg, var(--border-dim) 0%, transparent 100%);
+      background: linear-gradient(90deg, #2a2c3a, transparent);
     }
 
-    /* ===== TARJETAS CON GRADIENTE Y SOMBRA ===== */
-    .gauge-grid {
+    /* ===== TARJETAS ===== */
+    .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: var(--gap);
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 20px;
     }
-    .gauge-card {
-      background: linear-gradient(145deg, var(--bg-card-start), var(--bg-card-end));
+    .card {
+      background: linear-gradient(145deg, #14151c, #0f1015);
       border: 1px solid var(--border-dim);
-      border-radius: var(--r);
-      padding: var(--gap);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.8rem;
-      box-shadow: 0 10px 20px -5px rgba(0,0,0,0.8), 0 0 0 1px rgba(0,68,255,0) inset;
-      transition: all 0.2s var(--ease);
+      border-radius: 4px;
+      padding: 20px;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.5);
     }
-    .gauge-card:hover {
-      border-color: var(--border-glow);
-      box-shadow: 0 15px 25px -8px black, 0 0 0 1px var(--border-glow) inset;
-      transform: translateY(-2px);
-    }
-    .gauge-card__label {
+    .card__label {
       font-family: var(--mono);
-      font-size: 0.6rem;
+      font-size: 0.7rem;
       color: var(--text-dim);
       text-transform: uppercase;
-      align-self: flex-start;
     }
-    .gauge-card__value {
+    .card__value {
       font-family: var(--mono);
       font-size: 2.5rem;
-      line-height: 1;
+      line-height: 1.2;
     }
     .badge {
+      display: inline-block;
       font-family: var(--mono);
       font-size: 0.55rem;
       padding: 0.2rem 0.8rem;
       border-radius: 12px;
       border: 1px solid;
+      margin-top: 8px;
     }
-    .badge-emrg {
-      background: rgba(255,0,0,0.15);
-      color: #ff5555;
-      border-color: #ff0000;
-      animation: pulse-emrg 1.5s infinite;
-    }
-    @keyframes pulse-emrg { 0% { opacity: 1; } 50% { opacity: 0.5; } }
 
-    /* ===== ECG CON SOMBRA DINÁMICA ===== */
-    .ecg-container {
-      margin: 2rem 0;
-      background: linear-gradient(145deg, #090a10, #12131e);
-      border: 1px solid var(--border-dim);
-      border-radius: 8px;
-      padding: 1rem;
-      box-shadow: 0 0 30px rgba(0,68,255,0.1);
+    /* ===== CANVAS ===== */
+    .canvas-container {
+      background: #0a0b12;
+      border: 1px solid #222;
+      border-radius: 4px;
+      padding: 10px;
+      margin: 20px 0;
     }
-    .ecg-header {
-      display: flex;
-      justify-content: space-between;
-      font-family: var(--mono);
-      font-size: 0.7rem;
-      color: var(--text-dim);
-      margin-bottom: 0.5rem;
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      background: #0a0b12;
     }
-    .ecg-canvas-wrapper {
-      position: relative;
+    #ecgCanvas, #agentCanvas {
       width: 100%;
       height: 160px;
-      background: #0b0c14;
-      border-radius: 4px;
-      overflow: hidden;
     }
-    #ecgCanvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      display: block;
-    }
-    .criticity-footer {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 0.5rem;
-      font-family: var(--mono);
-      font-size: 0.6rem;
-      color: var(--text-faint);
-    }
-    .crit-bar {
-      width: 100%;
-      height: 4px;
-      background: linear-gradient(90deg, #2ecc71 0%, #f39c12 50%, #e74c3c 100%);
-      border-radius: 2px;
-      margin-top: 0.3rem;
+    #agentCanvas {
+      height: 240px;
     }
 
-    /* ===== SIMULADORES ===== */
-    .lab-panel {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: var(--gap-lg);
-      margin-top: var(--gap);
-    }
-    .simulador {
-      background: linear-gradient(145deg, #1a1c28, #12141e);
-      border: 1px solid var(--border-dim);
-      border-radius: var(--r);
-      padding: var(--gap);
-    }
-    .simulador h3 {
-      font-family: var(--mono);
-      font-size: 0.8rem;
-      margin-bottom: 1rem;
-      color: var(--gold);
+    /* ===== CONTROLES ===== */
+    .control-panel {
+      background: #14151c;
+      border: 1px solid #222;
+      border-radius: 4px;
+      padding: 20px;
+      margin-top: 20px;
     }
     .slider-group {
-      margin-bottom: 1rem;
+      margin-bottom: 15px;
     }
     .slider-group label {
       display: flex;
       justify-content: space-between;
       font-family: var(--mono);
-      font-size: 0.65rem;
+      font-size: 0.7rem;
       color: var(--text-dim);
-      margin-bottom: 0.3rem;
+      margin-bottom: 5px;
     }
-    input[type=range] { width: 100%; }
-    .valor-dinamico {
-      font-family: var(--mono);
-      font-size: 2rem;
-      text-align: center;
-      margin: 0.8rem 0;
-      color: var(--gold);
-    }
-
-    /* ===== MODAL (sin cambios importantes) ===== */
-    .modal-overlay {
-      display: none;
-      position: fixed;
-      top:0; left:0; width:100%; height:100%;
-      background: rgba(0,0,0,0.7);
-      backdrop-filter: blur(6px);
-      z-index: 200;
-      align-items: center; justify-content: center;
-    }
-    .modal-overlay.active { display: flex; }
-    .modal {
-      background: linear-gradient(145deg, #1c1d29, #12131b);
-      border: 1px solid var(--border-glow);
-      border-radius: 8px;
-      max-width: 900px;
-      width: 95%;
-      max-height: 85vh;
-      overflow-y: auto;
-      padding: var(--gap-lg);
-      box-shadow: 0 30px 50px black;
-    }
-    .modal__close {
-      float: right;
-      font-size: 2rem;
-      cursor: pointer;
-      color: var(--text-dim);
-    }
-    .fases-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: var(--gap);
-      margin: 1rem 0;
-    }
-    .fase-card {
-      background: rgba(0,0,0,0.3);
-      border: 1px solid var(--border-dim);
-      padding: 1rem;
-      border-radius: var(--r);
+    input[type=range] {
+      width: 100%;
+      background: #222;
+      height: 4px;
+      border-radius: 2px;
     }
 
     /* ===== FOOTER ===== */
-    .site-footer {
-      border-top: 1px solid var(--border-dim);
-      padding: var(--gap-lg) var(--gap);
-      background: #0a0b10;
+    .footer {
+      padding: 20px;
+      font-family: var(--mono);
+      font-size: 0.6rem;
       color: #5f647c;
+      text-align: center;
     }
   </style>
 </head>
 <body>
-  <canvas id="network-canvas"></canvas>
-  <div class="site-wrap">
-    <div class="topbar">
-      <div class="topbar__brand"><span>⏣</span> SYSTEM FRICTION <span>· OBSERVATORIO</span></div>
-      <div class="topbar__nav">
-        <a href="#">INICIO</a>
-        <a href="https://aptymok.github.io/system-friction-main/laboratorio/" target="_blank">LAB</a>
-        <a href="#" id="open-modal-link">NODO AGS</a>
-      </div>
-      <div class="topbar__ihg"><span class="topbar__ihg-dot"></span> IHG <span id="ihg-value">-0.620</span></div>
-    </div>
 
-    <main>
-      <section class="hero">
-        <div class="hero__postulate">Observatorio de Fricción Sistémica</div>
-        <div class="hero__formula">f = (t/T) + O</div>
-        <div class="hero__event">⚡ CASO AGS · COLAPSO INSTITUCIONAL 2024-2026</div>
-      </section>
-
-      <!-- DASHBOARD -->
-      <section class="section section--dashboard">
-        <div class="section__label">SCORECARD · MÉTRICAS AGREGADAS</div>
-        <div class="gauge-grid">
-          <div class="gauge-card">
-            <span class="gauge-card__label">IHG GLOBAL</span>
-            <span class="gauge-card__value" id="gauge-ihg">-0.620</span>
-            <span class="badge badge-emrg">EMERGENCIA</span>
-          </div>
-          <div class="gauge-card">
-            <span class="gauge-card__label">NTI SISTEMA</span>
-            <span class="gauge-card__value" id="gauge-nti">0.351</span>
-            <span class="badge" style="border-color:var(--crit); color:#ff8888;">INFRA-UCAP</span>
-          </div>
-          <div class="gauge-card">
-            <span class="gauge-card__label">FRACTURA (2030)</span>
-            <span class="gauge-card__value" id="gauge-frac">71%</span>
-            <span class="badge" style="border-color:var(--warn); color:var(--warn);">ALTA</span>
-          </div>
-          <div class="gauge-card" id="ags-card" style="background:linear-gradient(145deg,#2a2c3a,#1a1c28); border-color:#c9a84c; cursor:pointer;">
-            <span class="gauge-card__label" style="color:#c9a84c;">NODO AGS</span>
-            <span class="gauge-card__value" style="color:#c9a84c;">CASO</span>
-            <span class="badge" style="border-color:#c9a84c; color:#c9a84c;">VER 6 FASES</span>
-          </div>
-        </div>
-      </section>
-
-      <!-- LABORATORIO CON ECG -->
-      <section class="section section--lab">
-        <div class="section__label">LABORATORIO · SIMULACIÓN CON ECG DE CRITICIDAD</div>
-
-        <!-- ECG DINÁMICO -->
-        <div class="ecg-container">
-          <div class="ecg-header">
-            <span>MONITOR HOMEOSTÁTICO · F (FRICCIÓN)</span>
-            <span id="crit-label">CRITICIDAD: <span id="crit-value">0.00</span></span>
-          </div>
-          <div class="ecg-canvas-wrapper">
-            <canvas id="ecgCanvas" width="800" height="160"></canvas>
-          </div>
-          <div class="criticity-footer">
-            <span style="color:#2ecc71;">estable</span>
-            <span style="color:#f39c12;">alerta</span>
-            <span style="color:#e74c3c;">crítico</span>
-          </div>
-          <div class="crit-bar"></div>
-        </div>
-
-        <!-- SIMULADORES (f e IHG) -->
-        <div class="lab-panel">
-          <div class="simulador">
-            <h3>⏣ Fricción: f = (t/T) + O</h3>
-            <div class="slider-group">
-              <label>t (real) <span id="t-val">24</span>h</label>
-              <input type="range" id="t-slider" min="0" max="48" value="24">
-            </div>
-            <div class="slider-group">
-              <label>T (norma) <span id="T-val">24</span>h</label>
-              <input type="range" id="T-slider" min="1" max="48" value="24">
-            </div>
-            <div class="slider-group">
-              <label>O (opacidad) <span id="O-val">0.40</span></label>
-              <input type="range" id="O-slider" min="0" max="1" value="0.4" step="0.01">
-            </div>
-            <div class="valor-dinamico" id="f-val">1.000</div>
-          </div>
-
-          <div class="simulador">
-            <h3>⏣ IHG Sintético</h3>
-            <div class="slider-group">
-              <label>NTI <span id="nti-lab">0.35</span></label>
-              <input type="range" id="nti-slider" min="0" max="1" value="0.35" step="0.01">
-            </div>
-            <div class="slider-group">
-              <label>PF (inacción) <span id="pf-lab">0.60</span></label>
-              <input type="range" id="pf-slider" min="0" max="1" value="0.6" step="0.01">
-            </div>
-            <div class="slider-group">
-              <label>CSR <span id="csr-lab">0.05</span></label>
-              <input type="range" id="csr-slider" min="0" max="1" value="0.05" step="0.01">
-            </div>
-            <div class="valor-dinamico" id="ihg-sim">0.015</div>
-          </div>
-        </div>
-      </section>
-    </main>
-
-    <footer class="site-footer">
-      <div>© 2026 · System Friction · v2.0</div>
-      <div>
-        <a href="https://aptymok.github.io/system-friction-main/MIHM/caso-estudio/" target="_blank">Caso AGS</a> ·
-        <a href="https://aptymok.github.io/system-friction-main/laboratorio/" target="_blank">Lab MIHM</a>
-      </div>
-    </footer>
+<div class="topbar">
+  <div>⏣ SYSTEM FRICTION · OBSERVATORIO MIHM</div>
+  <div id="ihgIndicator">
+    <span id="ihgDot"></span>
+    <span>IHG <span id="ihgDisplay">0.00</span></span>
   </div>
+</div>
 
-  <!-- MODAL AGS -->
-  <div class="modal-overlay" id="ags-modal">
-    <div class="modal">
-      <span class="modal__close" id="close-modal">&times;</span>
-      <h2 style="color:var(--gold);">⏣ NODO AGUASCALIENTES · 6 FASES</h2>
-      <div class="fases-grid">
-        <div class="fase-card"><h4>AGS-01</h4> IHG -0.15 · NTI 0.85 · f 0.94 ✅</div>
-        <div class="fase-card"><h4>AGS-02</h4> IHG -0.28 · NTI 0.72 · f 1.76 ⚠️</div>
-        <div class="fase-card"><h4>AGS-03</h4> IHG -0.44 · NTI 0.61 · f 1.85 🔶</div>
-        <div class="fase-card"><h4>AGS-04</h4> IHG -0.41 · NTI 0.68 · f 0.70 🔶</div>
-        <div class="fase-card"><h4>AGS-05</h4> IHG -0.55 · NTI 0.45 · f 2.10 🔴</div>
-        <div class="fase-card"><h4>AGS-06</h4> IHG -0.62 · NTI 0.351 · f 2.47 ❌</div>
+<section class="hero">
+  <h1>f = (t/T) + O</h1>
+  <div style="color: var(--text-dim); margin-top: 10px;">Simulación de dinámica institucional · v2.0</div>
+</section>
+
+<!-- MÉTRICAS PRINCIPALES -->
+<section class="section">
+  <div class="section__title">SCORECARD</div>
+  <div class="grid">
+    <div class="card">
+      <div class="card__label">Fricción sistema</div>
+      <div class="card__value" id="fDisplay">0.00</div>
+    </div>
+    <div class="card">
+      <div class="card__label">NTI (trazabilidad)</div>
+      <div class="card__value" id="ntiDisplay">0.00</div>
+    </div>
+    <div class="card">
+      <div class="card__label">PF (inacción)</div>
+      <div class="card__value" id="pfDisplay">0.00</div>
+    </div>
+    <div class="card">
+      <div class="card__label">CSR (recuperación)</div>
+      <div class="card__value" id="csrDisplay">0.00</div>
+    </div>
+  </div>
+  <div class="grid" style="grid-template-columns: repeat(2,1fr);">
+    <div class="card">
+      <div class="card__label">IHG calculado</div>
+      <div class="card__value" id="ihgCalcDisplay">0.00</div>
+      <div id="protocolBadge" class="badge" style="border-color: var(--ok); color: var(--ok);">OK</div>
+    </div>
+    <div class="card">
+      <div class="card__label">P(colapso 2030)</div>
+      <div class="card__value" id="pColapso">71%</div>
+      <div class="badge" style="border-color: var(--warn); color: var(--warn);">Monte Carlo</div>
+    </div>
+  </div>
+</section>
+
+<!-- ECG HISTÓRICO -->
+<section class="section">
+  <div class="section__title">MONITOR HOMEOSTÁTICO · FRICCIÓN HISTÓRICA</div>
+  <div class="canvas-container">
+    <canvas id="ecgCanvas" width="800" height="160"></canvas>
+  </div>
+  <div style="display: flex; justify-content: space-between; font-size:0.7rem; color: var(--text-dim); margin-top: 5px;">
+    <span style="color:var(--ok)">estable</span>
+    <span style="color:var(--warn)">alerta</span>
+    <span style="color:var(--crit)">crítico</span>
+  </div>
+</section>
+
+<!-- AGENTES DINÁMICOS -->
+<section class="section">
+  <div class="section__title">RED DE AGENTES · 35 NODOS</div>
+  <div class="canvas-container">
+    <canvas id="agentCanvas" width="800" height="240"></canvas>
+  </div>
+</section>
+
+<!-- CONTROLES Y SIMULADOR -->
+<section class="section">
+  <div class="section__title">LABORATORIO · AJUSTES EN VIVO</div>
+  <div class="control-panel">
+    <div class="slider-group">
+      <label>t (tiempo real) <span id="tVal">24</span> h</label>
+      <input type="range" id="tSlider" min="0" max="48" value="24" step="1">
+    </div>
+    <div class="slider-group">
+      <label>T (tiempo normativo) <span id="TVal">24</span> h</label>
+      <input type="range" id="TSlider" min="1" max="48" value="24" step="1">
+    </div>
+    <div class="slider-group">
+      <label>O (opacidad) <span id="OVal">0.40</span></label>
+      <input type="range" id="OSlider" min="0" max="1" value="0.4" step="0.01">
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(3,1fr); gap:10px; margin-top:20px;">
+      <div style="text-align:center; background:#0f1015; padding:10px;">
+        <div style="font-size:0.6rem; color:var(--text-dim);">f calculada</div>
+        <div style="font-family:monospace; font-size:1.5rem;" id="fSim">1.00</div>
+      </div>
+      <div style="text-align:center; background:#0f1015; padding:10px;">
+        <div style="font-size:0.6rem; color:var(--text-dim);">IHG sim</div>
+        <div style="font-family:monospace; font-size:1.5rem;" id="ihgSim">0.00</div>
+      </div>
+      <div style="text-align:center; background:#0f1015; padding:10px;">
+        <div style="font-size:0.6rem; color:var(--text-dim);">NTI sim</div>
+        <div style="font-family:monospace; font-size:1.5rem;" id="ntiSim">0.00</div>
       </div>
     </div>
   </div>
+</section>
 
-  <script>
-    (function() {
-      // ===== CANVAS DE FONDO =====
-      const canvas = document.getElementById('network-canvas');
-      const ctx = canvas.getContext('2d');
-      let width, height, particles = [];
-      function initParticles() {
-        particles = [];
-        for (let i = 0; i < 40; i++) {
-          particles.push({ x: Math.random()*width, y: Math.random()*height, vx: (Math.random()-0.5)*0.2, vy: (Math.random()-0.5)*0.2, r: 1+Math.random()*2 });
-        }
-      }
-      function resizeCanvas() { width = window.innerWidth; height = window.innerHeight; canvas.width = width; canvas.height = height; initParticles(); }
-      function draw() {
-        ctx.clearRect(0,0,width,height);
-        ctx.strokeStyle = '#0044ff'; ctx.lineWidth = 0.3;
-        for (let i=0; i<particles.length; i++) {
-          for (let j=i+1; j<particles.length; j++) {
-            const dx = particles[i].x - particles[j].x, dy = particles[i].y - particles[j].y;
-            const dist = Math.sqrt(dx*dx+dy*dy);
-            if (dist < 120) {
-              ctx.beginPath(); ctx.moveTo(particles[i].x, particles[i].y); ctx.lineTo(particles[j].x, particles[j].y);
-              ctx.strokeStyle = `rgba(0,68,255,${0.1*(1-dist/120)})`; ctx.stroke();
-            }
-          }
-        }
-        particles.forEach(p => { ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 2*Math.PI); ctx.fillStyle = '#0044ff'; ctx.fill(); p.x += p.vx; p.y += p.vy; if (p.x<0||p.x>width) p.vx*=-1; if (p.y<0||p.y>height) p.vy*=-1; });
-        requestAnimationFrame(draw);
-      }
-      window.addEventListener('resize', resizeCanvas); resizeCanvas(); draw();
+<footer class="footer">
+  © 2026 · System Friction · Datos del caso Aguascalientes · seed 42
+</footer>
 
-      // ===== DATOS DINÁMICOS =====
-      let ihg = -0.620, nti = 0.351, frac = 71;
-      function updateMainMetrics() {
-        ihg = Number((ihg + (Math.random()-0.5)*0.02).toFixed(3));
-        nti = Number((nti + (Math.random()-0.5)*0.015).toFixed(3));
-        frac = Math.min(95, Math.max(40, frac + (Math.random()-0.5)*2));
-        document.querySelectorAll('#ihg-value, #gauge-ihg').forEach(el => el.textContent = ihg.toFixed(3));
-        document.getElementById('gauge-nti').textContent = nti.toFixed(3);
-        document.getElementById('gauge-frac').textContent = Math.round(frac) + '%';
-      }
-      setInterval(updateMainMetrics, 4000);
+<script>
+(function() {
+  // ==================== CONFIGURACIÓN ====================
+  const AGENT_COUNT = 35;
+  let agents = [];
+  let fHistory = [];            // para el ECG histórico
+  const MAX_HISTORY = 120;       // puntos en el ECG
 
-      // ===== SIMULADORES Y ECG =====
-      const tSlider = document.getElementById('t-slider');
-      const TSlider = document.getElementById('T-slider');
-      const OSlider = document.getElementById('O-slider');
-      const tSpan = document.getElementById('t-val');
-      const TSpan = document.getElementById('T-val');
-      const OSpan = document.getElementById('O-val');
-      const fVal = document.getElementById('f-val');
-      const critLabel = document.getElementById('crit-value');
-      const ecgCanvas = document.getElementById('ecgCanvas');
-      const ctxEcg = ecgCanvas.getContext('2d');
-      let fValue = 1.0;
-      let time = 0;
+  // elementos del DOM
+  const tSlider = document.getElementById('tSlider');
+  const TSlider = document.getElementById('TSlider');
+  const OSlider = document.getElementById('OSlider');
+  const tVal = document.getElementById('tVal');
+  const TVal = document.getElementById('TVal');
+  const OVal = document.getElementById('OVal');
+  const fDisplay = document.getElementById('fDisplay');
+  const ntiDisplay = document.getElementById('ntiDisplay');
+  const pfDisplay = document.getElementById('pfDisplay');
+  const csrDisplay = document.getElementById('csrDisplay');
+  const ihgCalcDisplay = document.getElementById('ihgCalcDisplay');
+  const ihgDisplay = document.getElementById('ihgDisplay');      // topbar
+  const ihgDot = document.getElementById('ihgDot');
+  const protocolBadge = document.getElementById('protocolBadge');
+  const fSim = document.getElementById('fSim');
+  const ihgSim = document.getElementById('ihgSim');
+  const ntiSim = document.getElementById('ntiSim');
+  const pColapso = document.getElementById('pColapso');   // valor fijo del caso
 
-      function updateF() {
-        const t = parseFloat(tSlider.value);
-        const T = parseFloat(TSlider.value);
-        const O = parseFloat(OSlider.value);
-        tSpan.textContent = t; TSpan.textContent = T; OSpan.textContent = O.toFixed(2);
-        fValue = t/T + O;
-        fVal.textContent = fValue.toFixed(3);
-        critLabel.textContent = fValue.toFixed(2);
-      }
-      tSlider.addEventListener('input', updateF);
-      TSlider.addEventListener('input', updateF);
-      OSlider.addEventListener('input', updateF);
-      updateF();
+  // canvases
+  const ecgCanvas = document.getElementById('ecgCanvas');
+  const ctxEcg = ecgCanvas.getContext('2d');
+  const agentCanvas = document.getElementById('agentCanvas');
+  const ctxAgent = agentCanvas.getContext('2d');
 
-      function drawEcg() {
-        const w = ecgCanvas.width, h = ecgCanvas.height;
-        ctxEcg.clearRect(0, 0, w, h);
-        // dibujar sombra de fondo según criticidad
-        let gradient;
-        if (fValue < 0.7) {
-          gradient = ctxEcg.createLinearGradient(0, h, 0, 0);
-          gradient.addColorStop(0, 'rgba(46,204,113,0.2)');
-          gradient.addColorStop(1, 'rgba(46,204,113,0)');
-        } else if (fValue < 1.0) {
-          gradient = ctxEcg.createLinearGradient(0, h, 0, 0);
-          gradient.addColorStop(0, 'rgba(243,156,18,0.2)');
-          gradient.addColorStop(1, 'rgba(243,156,18,0)');
-        } else {
-          gradient = ctxEcg.createLinearGradient(0, h, 0, 0);
-          gradient.addColorStop(0, 'rgba(231,76,60,0.3)');
-          gradient.addColorStop(1, 'rgba(231,76,60,0)');
-        }
-        ctxEcg.fillStyle = gradient;
-        ctxEcg.fillRect(0, 0, w, h);
+  // ==================== INICIALIZAR AGENTES ====================
+  function initAgents() {
+    agents = [];
+    for (let i = 0; i < AGENT_COUNT; i++) {
+      agents.push({
+        x: Math.random() * agentCanvas.width,
+        y: Math.random() * agentCanvas.height,
+        vx: (Math.random() - 0.5) * 0.5,
+        vy: (Math.random() - 0.5) * 0.5,
+        baseEfficiency: 0.5 + Math.random() * 0.5,
+        baseLatency: Math.random() * 30,
+        opacityFactor: Math.random() * 0.5,
+        friction: 0
+      });
+    }
+  }
+  initAgents();
 
-        // dibujar línea ECG
-        ctxEcg.beginPath();
-        ctxEcg.strokeStyle = '#ffffff';
-        ctxEcg.lineWidth = 2;
-        for (let x = 0; x < w; x+=2) {
-          let y = h/2 + 30 * Math.sin(x * 0.02 + time) * Math.sin(x * 0.01);
-          if (x === 0) ctxEcg.moveTo(x, y);
-          else ctxEcg.lineTo(x, y);
-        }
-        ctxEcg.stroke();
-        time += 0.1;
-        requestAnimationFrame(drawEcg);
-      }
-      drawEcg();
+  // ==================== ACTUALIZAR FRICCIÓN DE AGENTES ====================
+  function updateAgents() {
+    const t = parseFloat(tSlider.value);
+    const T = parseFloat(TSlider.value);
+    const O = parseFloat(OSlider.value);
 
-      // ===== MODAL =====
-      const modal = document.getElementById('ags-modal');
-      document.getElementById('open-modal-link').addEventListener('click', (e) => { e.preventDefault(); modal.classList.add('active'); });
-      document.getElementById('ags-card').addEventListener('click', (e) => { e.preventDefault(); modal.classList.add('active'); });
-      document.getElementById('close-modal').addEventListener('click', () => modal.classList.remove('active'));
-      window.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('active'); });
-    })();
-  </script>
+    agents.forEach(a => {
+      // latencia normalizada (0-0.625)
+      const latencyContrib = a.baseLatency / 48;
+      // ruido pequeño
+      const noise = (Math.random() - 0.5) * 0.05;
+      a.friction = (t / T) + O + latencyContrib + noise;
+      // mover agentes suavemente
+      a.x += a.vx;
+      a.y += a.vy;
+      // rebotar en bordes
+      if (a.x < 0 || a.x > agentCanvas.width) a.vx *= -1;
+      if (a.y < 0 || a.y > agentCanvas.height) a.vy *= -1;
+      // mantener dentro
+      a.x = Math.max(0, Math.min(agentCanvas.width, a.x));
+      a.y = Math.max(0, Math.min(agentCanvas.height, a.y));
+    });
+  }
+
+  // ==================== CALCULAR MÉTRICAS AGREGADAS ====================
+  function computeMetrics() {
+    let sumF = 0, sumEff = 0;
+    let agentsOk = 0;   // para NTI: agentes con fricción < 0.7
+    agents.forEach(a => {
+      sumF += a.friction * a.baseEfficiency;
+      sumEff += a.baseEfficiency;
+      if (a.friction < 0.7) agentsOk++;
+    });
+    const fSistema = sumEff > 0 ? sumF / sumEff : 0;
+
+    // NTI: proporción de agentes con fricción < 0.7 (trazables)
+    const nti = agentsOk / AGENT_COUNT;
+
+    // PF (inacción): proporción de agentes con fricción > 1.0
+    const agentsInact = agents.filter(a => a.friction > 1.0).length;
+    const pf = agentsInact / AGENT_COUNT;
+
+    // CSR (capacidad recuperación): inverso de la fricción promedio, normalizado
+    const csr = Math.max(0, Math.min(1, 1 - fSistema / 2.5)); // si f=0, csr=1; si f=2.5, csr=0
+
+    // IHG según fórmula del laboratorio
+    const ihg = 0.50 * (nti - 0.40) + 0.30 * pf + 0.20 * (csr - 0.75);
+
+    return { fSistema, nti, pf, csr, ihg };
+  }
+
+  // ==================== ACTUALIZAR INTERFAZ ====================
+  function updateUI(metrics) {
+    const { fSistema, nti, pf, csr, ihg } = metrics;
+
+    // valores principales
+    fDisplay.textContent = fSistema.toFixed(3);
+    ntiDisplay.textContent = nti.toFixed(3);
+    pfDisplay.textContent = pf.toFixed(3);
+    csrDisplay.textContent = csr.toFixed(3);
+    ihgCalcDisplay.textContent = ihg.toFixed(3);
+    ihgDisplay.textContent = ihg.toFixed(3);
+
+    // color del punto y badge según IHG
+    if (ihg < -1.0) {
+      ihgDot.style.background = 'var(--emrg)';
+      protocolBadge.textContent = 'EMERGENCIA';
+      protocolBadge.style.borderColor = 'var(--emrg)';
+      protocolBadge.style.color = 'var(--emrg)';
+    } else if (ihg < -0.5) {
+      ihgDot.style.background = 'var(--crit)';
+      protocolBadge.textContent = 'CRÍTICO';
+      protocolBadge.style.borderColor = 'var(--crit)';
+      protocolBadge.style.color = 'var(--crit)';
+    } else if (ihg < 0) {
+      ihgDot.style.background = 'var(--warn)';
+      protocolBadge.textContent = 'ALERTA';
+      protocolBadge.style.borderColor = 'var(--warn)';
+      protocolBadge.style.color = 'var(--warn)';
+    } else {
+      ihgDot.style.background = 'var(--ok)';
+      protocolBadge.textContent = 'OK';
+      protocolBadge.style.borderColor = 'var(--ok)';
+      protocolBadge.style.color = 'var(--ok)';
+    }
+
+    // valores de los sliders
+    tVal.textContent = tSlider.value;
+    TVal.textContent = TSlider.value;
+    OVal.textContent = parseFloat(OSlider.value).toFixed(2);
+
+    // simuladores pequeños
+    fSim.textContent = fSistema.toFixed(2);
+    ihgSim.textContent = ihg.toFixed(2);
+    ntiSim.textContent = nti.toFixed(2);
+
+    // pColapso fijo del caso (podría variar con monte carlo real)
+    pColapso.textContent = '71%';
+  }
+
+  // ==================== DIBUJAR AGENTES ====================
+  function drawAgents() {
+    ctxAgent.clearRect(0, 0, agentCanvas.width, agentCanvas.height);
+    agents.forEach(a => {
+      let color;
+      if (a.friction < 0.7) color = '#2ecc71';
+      else if (a.friction < 1.2) color = '#f39c12';
+      else color = '#e74c3c';
+
+      ctxAgent.beginPath();
+      ctxAgent.arc(a.x, a.y, 5, 0, 2 * Math.PI);
+      ctxAgent.fillStyle = color;
+      ctxAgent.fill();
+      // pequeño borde
+      ctxAgent.strokeStyle = '#ffffff';
+      ctxAgent.lineWidth = 1;
+      ctxAgent.stroke();
+    });
+  }
+
+  // ==================== DIBUJAR ECG HISTÓRICO ====================
+  function drawEcg(history, currentF) {
+    ctxEcg.clearRect(0, 0, ecgCanvas.width, ecgCanvas.height);
+
+    // dibujar fondo de criticidad (gradiente según último valor)
+    let gradient;
+    if (currentF < 0.7) {
+      gradient = ctxEcg.createLinearGradient(0, ecgCanvas.height, 0, 0);
+      gradient.addColorStop(0, 'rgba(46,204,113,0.15)');
+      gradient.addColorStop(1, 'rgba(46,204,113,0)');
+    } else if (currentF < 1.2) {
+      gradient = ctxEcg.createLinearGradient(0, ecgCanvas.height, 0, 0);
+      gradient.addColorStop(0, 'rgba(243,156,18,0.15)');
+      gradient.addColorStop(1, 'rgba(243,156,18,0)');
+    } else {
+      gradient = ctxEcg.createLinearGradient(0, ecgCanvas.height, 0, 0);
+      gradient.addColorStop(0, 'rgba(231,76,60,0.2)');
+      gradient.addColorStop(1, 'rgba(231,76,60,0)');
+    }
+    ctxEcg.fillStyle = gradient;
+    ctxEcg.fillRect(0, 0, ecgCanvas.width, ecgCanvas.height);
+
+    // dibujar líneas de umbral (opcional)
+    ctxEcg.strokeStyle = '#333';
+    ctxEcg.lineWidth = 0.5;
+    ctxEcg.beginPath();
+    ctxEcg.moveTo(0, ecgCanvas.height * 0.3); // umbral bajo
+    ctxEcg.lineTo(ecgCanvas.width, ecgCanvas.height * 0.3);
+    ctxEcg.strokeStyle = '#2ecc71';
+    ctxEcg.stroke();
+
+    ctxEcg.beginPath();
+    ctxEcg.moveTo(0, ecgCanvas.height * 0.6); // umbral medio
+    ctxEcg.lineTo(ecgCanvas.width, ecgCanvas.height * 0.6);
+    ctxEcg.strokeStyle = '#f39c12';
+    ctxEcg.stroke();
+
+    ctxEcg.beginPath();
+    ctxEcg.moveTo(0, ecgCanvas.height * 0.9); // umbral alto
+    ctxEcg.lineTo(ecgCanvas.width, ecgCanvas.height * 0.9);
+    ctxEcg.strokeStyle = '#e74c3c';
+    ctxEcg.stroke();
+
+    // dibujar línea de fricción histórica
+    if (history.length < 2) return;
+    const step = ecgCanvas.width / (MAX_HISTORY - 1);
+    ctxEcg.beginPath();
+    ctxEcg.strokeStyle = '#ffffff';
+    ctxEcg.lineWidth = 2;
+    for (let i = 0; i < history.length; i++) {
+      // normalizar: f entre 0 y 2.5 aprox, mapear a 0-160 (invertido porque 0 arriba)
+      const y = ecgCanvas.height - (history[i] / 2.5) * ecgCanvas.height;
+      const x = i * step;
+      if (i === 0) ctxEcg.moveTo(x, y);
+      else ctxEcg.lineTo(x, y);
+    }
+    ctxEcg.stroke();
+  }
+
+  // ==================== BUCLE PRINCIPAL ====================
+  function loop() {
+    updateAgents();
+    const metrics = computeMetrics();
+
+    // guardar fSistema en historial
+    fHistory.push(metrics.fSistema);
+    if (fHistory.length > MAX_HISTORY) fHistory.shift();
+
+    updateUI(metrics);
+    drawAgents();
+    drawEcg(fHistory, metrics.fSistema);
+
+    requestAnimationFrame(loop);
+  }
+
+  // ==================== EVENTOS SLIDERS (solo actualizan, loop ya corre) ====================
+  [tSlider, TSlider, OSlider].forEach(s => {
+    s.addEventListener('input', () => {
+      // los valores se leen en updateAgents
+    });
+  });
+
+  // ==================== INICIAR ====================
+  loop();
+
+  // Ajustar tamaño de canvas al cargar (fijo, pero podría hacerse responsive)
+  // Por ahora mantenemos 800x160 y 800x240.
+})();
+</script>
 </body>
 </html>
