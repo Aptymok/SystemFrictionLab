@@ -3,351 +3,243 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>System Friction · Scorecard · Observatorio</title>
+  <title>System Friction · Observatorio · Scorecard + Lab</title>
   <style>
-    /* ===== RESET & VARIABLES (se mantienen los colores originales) ===== */
+    /* ===== RESET & VARIABLES (se mantienen) ===== */
     :root {
-      --bg:       #ffffff;
-      --surface:  #f8f9ff;
-      --surface2: #f0f3ff;
-      --border:   #e0e4f5;
-      --border2:  #c0c8e0;
-      --text:     #1a1b1e;
-      --text-dim: #5c6275;
-      --text-faint:#a0a8c0;
-      --gold:     #0044ff;
-      --gold-dim: #002280;
-      --ok:       #2e7d32;
-      --ok-text:  #1b5e20;
-      --warn:     #fbc02d;
-      --warn-text:#9a7d0a;
-      --crit:     #c62828;
-      --crit-text:#b71c1c;
-      --frac:     #7b1fa2;
-      --frac-text:#4a148c;
-      --opq:      #0288d1;
-      --opq-text: #01579b;
-      --emrg:     #d50000;
-      --emrg-text:#b71c1c;
+      --bg: #ffffff; --surface: #f8f9ff; --surface2: #f0f3ff; --border: #e0e4f5;
+      --border2: #c0c8e0; --text: #1a1b1e; --text-dim: #5c6275; --text-faint: #a0a8c0;
+      --gold: #0044ff; --gold-dim: #002280; --ok: #2e7d32; --ok-text: #1b5e20;
+      --warn: #fbc02d; --warn-text: #9a7d0a; --crit: #c62828; --crit-text: #b71c1c;
+      --frac: #7b1fa2; --frac-text: #4a148c; --opq: #0288d1; --opq-text: #01579b;
+      --emrg: #d50000; --emrg-text: #b71c1c;
       --serif: Georgia, 'Times New Roman', serif;
-      --mono:  'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
-      --gap:    1.2rem;
-      --gap-sm: 0.6rem;
-      --gap-lg: 2.4rem;
-      --r:      2px;
+      --mono: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+      --gap: 1.2rem; --gap-sm: 0.6rem; --gap-lg: 2.4rem; --r: 2px;
       --ease: cubic-bezier(0.4, 0, 0.2, 1);
     }
-
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     html { font-size: 16px; scroll-behavior: smooth; }
     body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--serif);
-      font-size: 1rem;
-      line-height: 1.65;
-      min-height: 100vh;
-      -webkit-font-smoothing: antialiased;
-      position: relative;
+      background: var(--bg); color: var(--text); font-family: var(--serif);
+      line-height: 1.65; min-height: 100vh; position: relative;
     }
     a { color: var(--gold); text-decoration: none; transition: color 0.2s var(--ease); }
     a:hover { color: var(--text); }
 
-    /* ----- CANVAS DE FONDO (red de nodos) ----- */
+    /* ----- CANVAS DE FONDO ----- */
     #network-canvas {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 0;
-      pointer-events: none; /* para poder hacer clic en los elementos de arriba */
-      opacity: 0.25; /* sutil, para no distraer */
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0;
+      pointer-events: none; opacity: 0.2;
     }
-
-    /* Para que el contenido quede sobre el canvas */
-    .site-wrap {
-      position: relative;
-      z-index: 10;
-      background: transparent; /* hereda el fondo blanco pero el canvas se ve detrás */
-    }
-
-    /* Ajustamos fondos de secciones para que sean semitransparentes y se vea el canvas */
+    .site-wrap { position: relative; z-index: 10; background: transparent; }
     .section, .hero, .topbar, .site-footer {
-      background-color: rgba(255,255,255,0.7);
-      backdrop-filter: blur(2px);
+      background-color: rgba(255,255,255,0.7); backdrop-filter: blur(2px);
     }
-    .topbar {
-      background: rgba(255,255,255,0.85);
-      backdrop-filter: blur(10px);
-    }
-    .section--dashboard {
-      background: rgba(248,249,255,0.75);
-    }
+    .topbar { background: rgba(255,255,255,0.85); backdrop-filter: blur(10px); }
+    .section--dashboard, .section--lab { background: rgba(248,249,255,0.75); }
     .gauge-card {
-      background: rgba(240,243,255,0.8);
-      backdrop-filter: blur(4px);
-      border: 1px solid rgba(224,228,245,0.6);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+      background: rgba(240,243,255,0.8); backdrop-filter: blur(4px);
+      border: 1px solid rgba(224,228,245,0.6); box-shadow: 0 4px 12px rgba(0,0,0,0.02);
       transition: all 0.2s var(--ease);
     }
     .gauge-card:hover {
-      border-color: var(--gold);
-      box-shadow: 0 8px 24px rgba(0,68,255,0.12);
+      border-color: var(--gold); box-shadow: 0 8px 24px rgba(0,68,255,0.12);
       transform: translateY(-2px);
     }
 
-    /* ===== TOPBAR ===== */
+    /* ===== TOPBAR ===== (igual, pero con enlaces reales) */
     .topbar {
       position: fixed; top: 0; left: 0; right: 0; z-index: 100;
       display: flex; align-items: center; justify-content: space-between;
-      padding: 0 var(--gap);
-      height: 44px;
-      border-bottom: 1px solid var(--border);
+      padding: 0 var(--gap); height: 44px; border-bottom: 1px solid var(--border);
     }
     .topbar__brand {
-      font-family: var(--mono);
-      font-size: 0.65rem;
-      letter-spacing: 0.15em;
-      color: var(--text-dim);
-      text-transform: uppercase;
+      font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.15em;
+      color: var(--text-dim); text-transform: uppercase;
     }
     .topbar__brand span { color: var(--gold); }
     .topbar__nav { display: flex; gap: 1rem; align-items: center; }
     .topbar__nav a {
-      font-family: var(--mono);
-      font-size: 0.6rem;
-      color: var(--text-dim);
+      font-family: var(--mono); font-size: 0.6rem; color: var(--text-dim);
       text-transform: uppercase;
     }
     .topbar__ihg {
-      font-family: var(--mono);
-      font-size: 0.65rem;
-      color: var(--crit-text);
+      font-family: var(--mono); font-size: 0.65rem; color: var(--crit-text);
       display: flex; align-items: center; gap: 0.5rem;
     }
     .topbar__ihg-dot {
-      width: 5px; height: 5px; border-radius: 50%;
-      background: var(--crit-text);
+      width: 5px; height: 5px; border-radius: 50%; background: var(--crit-text);
       animation: pulse-emrg 2s ease-in-out infinite;
     }
 
-    /* ===== HERO ===== */
+    /* ===== HERO ===== (sin cambios) */
     .hero {
-      min-height: 60vh;
-      padding-top: 44px;
-      display: flex; flex-direction: column;
-      justify-content: center; align-items: center;
-      text-align: center;
-      padding-left: var(--gap); padding-right: var(--gap);
-      position: relative;
+      min-height: 40vh; padding-top: 44px; display: flex; flex-direction: column;
+      justify-content: center; align-items: center; text-align: center;
+      padding-left: var(--gap); padding-right: var(--gap); position: relative;
       overflow: hidden;
     }
     .hero::before {
-      content: '';
-      position: absolute; inset: 0;
-      background:
-        radial-gradient(ellipse 60% 40% at 50% 60%, rgba(0, 68, 255, 0.04) 0%, transparent 70%),
-        radial-gradient(ellipse 80% 60% at 50% 100%, rgba(183, 28, 28, 0.03) 0%, transparent 60%);
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse 60% 40% at 50% 60%, rgba(0,68,255,0.04) 0%, transparent 70%),
+                  radial-gradient(ellipse 80% 60% at 50% 100%, rgba(183,28,28,0.03) 0%, transparent 60%);
       pointer-events: none;
     }
     .hero__postulate {
-      font-family: var(--serif);
-      font-size: clamp(0.7rem, 2.5vw, 0.85rem);
-      color: var(--text-dim);
-      text-transform: uppercase;
-      margin-bottom: 1.2rem;
+      font-family: var(--serif); font-size: clamp(0.7rem,2.5vw,0.85rem);
+      color: var(--text-dim); text-transform: uppercase; margin-bottom: 1.2rem;
     }
     .hero__formula {
-      font-family: var(--mono);
-      font-size: clamp(2rem, 8vw, 4.5rem);
-      color: var(--text);
-      line-height: 1;
-      margin-bottom: 1rem;
+      font-family: var(--mono); font-size: clamp(2rem,8vw,4.5rem); color: var(--text);
+      line-height: 1; margin-bottom: 1rem;
     }
     .hero__formula em { font-style: normal; color: var(--gold); }
     .hero__sub {
-      font-family: var(--mono);
-      font-size: clamp(0.6rem, 2vw, 0.72rem);
-      color: var(--text-faint);
-      margin-bottom: 1.5rem;
+      font-family: var(--mono); font-size: clamp(0.6rem,2vw,0.72rem);
+      color: var(--text-faint); margin-bottom: 1.5rem;
     }
     .hero__event {
-      font-family: var(--mono);
-      font-size: 0.65rem;
-      color: var(--crit-text);
-      border: 1px solid rgba(183,28,28,0.2);
-      padding: 0.4em 0.9em;
-      border-radius: var(--r);
+      font-family: var(--mono); font-size: 0.65rem; color: var(--crit-text);
+      border: 1px solid rgba(183,28,28,0.2); padding: 0.4em 0.9em; border-radius: var(--r);
       background: rgba(183,28,28,0.04);
     }
 
     /* ===== SECCIONES ===== */
     .section { padding: var(--gap-lg) var(--gap); border-top: 1px solid var(--border); }
-    .section--dashboard {  }
     .section__label {
-      font-family: var(--mono);
-      font-size: 0.58rem;
-      color: var(--text-faint);
-      text-transform: uppercase;
-      margin-bottom: var(--gap);
-      display: flex; align-items: center; gap: 0.6rem;
+      font-family: var(--mono); font-size: 0.58rem; color: var(--text-faint);
+      text-transform: uppercase; margin-bottom: var(--gap); display: flex;
+      align-items: center; gap: 0.6rem;
     }
     .section__label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 
-    /* ===== TARJETAS (GAUGES) ===== */
-    .gauge-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--gap); margin-bottom: var(--gap-lg); }
+    /* ===== GAUGE GRID ===== */
+    .gauge-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap: var(--gap); margin-bottom: var(--gap-lg); }
     .gauge-card {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: var(--r);
-      padding: var(--gap);
-      display: flex; flex-direction: column; align-items: center; gap: 0.8rem;
-      transition: border-color 0.2s var(--ease);
+      padding: var(--gap); display: flex; flex-direction: column; align-items: center; gap: 0.8rem;
     }
-    .gauge-card:hover { border-color: var(--gold); }
     .gauge-card__label { font-family: var(--mono); font-size: 0.6rem; color: var(--text-dim); text-transform: uppercase; align-self: flex-start; }
     .gauge-card__value { font-family: var(--mono); font-size: 2.2rem; line-height: 1; }
     .gauge-card__sub { font-family: var(--mono); font-size: 0.62rem; color: var(--text-faint); text-align: center; }
-
-    /* mini ECG */
-    .ecg-minified {
-      width: 100%; height: 40px; stroke: var(--gold); stroke-width: 1.5; fill: none;
-      cursor: zoom-in; transition: transform 0.3s var(--ease);
+    .badge {
+      font-family: var(--mono); font-size: 0.55rem; text-transform: uppercase;
+      padding: 0.2em 0.6em; border-radius: var(--r); border: 1px solid;
     }
-    .ecg-minified:hover { transform: scale(1.4); z-index: 10; background: var(--bg); }
-    .ecg-path { stroke-dasharray: 1000; stroke-dashoffset: 1000; animation: dash 5s linear infinite; }
-    @keyframes dash { to { stroke-dashoffset: 0; } }
-
-    /* badges */
-    .badge { font-family: var(--mono); font-size: 0.55rem; text-transform: uppercase; padding: 0.2em 0.6em; border-radius: var(--r); border: 1px solid; }
     .badge-warn { color: var(--warn-text); border-color: var(--warn); background: rgba(251,192,45,0.05); }
     .badge-crit { color: var(--crit-text); border-color: var(--crit); background: rgba(198,40,40,0.05); }
     .badge-emrg { color: var(--emrg-text); border-color: var(--emrg); background: rgba(213,0,0,0.05); animation: pulse-emrg 2s infinite; }
     @keyframes pulse-emrg { 0%,100%{opacity:1} 50%{opacity:0.6} }
 
-    /* ===== MODAL / DESGLOSE NODO AGS ===== */
-    .modal-overlay {
-      display: none;
-      position: fixed;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.3);
-      backdrop-filter: blur(6px);
-      z-index: 200;
-      align-items: center;
-      justify-content: center;
+    /* mini ECG */
+    .ecg-minified { width: 100%; height: 40px; stroke: var(--gold); stroke-width: 1.5; fill: none; cursor: zoom-in; transition: transform 0.3s var(--ease); }
+    .ecg-minified:hover { transform: scaleX(1.2); }
+    .ecg-path { stroke-dasharray: 1000; stroke-dashoffset: 1000; animation: dash 8s linear infinite; }
+    @keyframes dash { to { stroke-dashoffset: 0; } }
+
+    /* ===== LABORATORIO (simuladores) ===== */
+    .lab-panel {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: var(--gap-lg); margin-top: var(--gap);
     }
-    .modal-overlay.active {
-      display: flex;
-    }
-    .modal {
-      background: rgba(255,255,255,0.95);
-      backdrop-filter: blur(10px);
-      border: 1px solid var(--border2);
-      border-radius: 4px;
-      max-width: 800px;
-      width: 90%;
-      max-height: 80vh;
-      overflow-y: auto;
-      padding: var(--gap-lg);
-      box-shadow: 0 20px 40px rgba(0,0,0,0.2);
-      position: relative;
-      color: var(--text);
-    }
-    .modal__close {
-      position: absolute;
-      top: 1rem;
-      right: 1.5rem;
-      font-size: 2rem;
-      cursor: pointer;
-      color: var(--text-dim);
-      transition: color 0.2s;
-    }
-    .modal__close:hover { color: var(--crit); }
-    .modal h2 {
-      font-family: var(--mono);
-      font-size: 1.2rem;
-      margin-bottom: 1rem;
-      color: var(--gold-dim);
-    }
-    .modal h3 {
-      font-family: var(--mono);
-      font-size: 0.9rem;
-      margin: 1.5rem 0 0.5rem;
-      text-transform: uppercase;
-      color: var(--text-dim);
-    }
-    .nodo-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: var(--gap);
-      margin: 1rem 0;
-    }
-    .nodo-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      padding: 1rem;
+    .simulador {
+      background: var(--surface2); border: 1px solid var(--border); padding: var(--gap);
       border-radius: var(--r);
     }
-    .nodo-card__title {
-      font-family: var(--mono);
-      font-weight: bold;
-      color: var(--gold);
+    .simulador h3 {
+      font-family: var(--mono); font-size: 0.8rem; margin-bottom: 1rem;
+      color: var(--gold-dim); text-transform: uppercase;
     }
-    .nodo-card__metric {
-      font-family: var(--mono);
-      font-size: 1.4rem;
-      color: var(--text);
+    .slider-group {
+      display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 1rem;
     }
-    .nodo-card__label {
-      font-size: 0.7rem;
-      color: var(--text-faint);
+    .slider-group label {
+      font-family: var(--mono); font-size: 0.65rem; color: var(--text-dim);
+      display: flex; justify-content: space-between;
     }
+    input[type=range] { width: 100%; }
+    .valor-dinamico {
+      font-family: var(--mono); font-size: 1.8rem; text-align: center;
+      margin: 0.5rem 0; color: var(--gold);
+    }
+    .umbral {
+      font-family: var(--mono); font-size: 0.6rem; color: var(--text-faint);
+      display: flex; gap: 1rem; justify-content: center;
+    }
+    .montecarlo {
+      background: #000; color: #c9a84c; padding: var(--gap); border-radius: var(--r);
+      border: 1px solid #c9a84c;
+    }
+    .montecarlo p { font-family: var(--mono); display: flex; justify-content: space-between; }
+
+    /* ===== MODAL AGS (con fases) ===== */
+    .modal-overlay {
+      display: none; position: fixed; top:0; left:0; width:100%; height:100%;
+      background: rgba(0,0,0,0.3); backdrop-filter: blur(6px); z-index:200;
+      align-items: center; justify-content: center;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: rgba(255,255,255,0.95); backdrop-filter: blur(10px);
+      border: 1px solid var(--border2); border-radius: 4px; max-width: 900px;
+      width: 95%; max-height: 85vh; overflow-y: auto; padding: var(--gap-lg);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.2); position: relative;
+    }
+    .modal__close {
+      position: absolute; top: 1rem; right: 1.5rem; font-size: 2rem; cursor: pointer;
+      color: var(--text-dim); transition: color 0.2s;
+    }
+    .modal__close:hover { color: var(--crit); }
+    .modal h2 { font-family: var(--mono); font-size: 1.2rem; margin-bottom: 1rem; color: var(--gold-dim); }
+    .fases-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: var(--gap); margin: 1rem 0;
+    }
+    .fase-card {
+      background: var(--surface); border: 1px solid var(--border); padding: 1rem;
+      border-radius: var(--r);
+    }
+    .fase-card h4 { font-family: var(--mono); color: var(--gold); margin-bottom: 0.5rem; }
+    .fase-metrica { display: flex; justify-content: space-between; font-size:0.8rem; }
 
     /* ===== FOOTER ===== */
     .site-footer {
-      border-top: 1px solid var(--border);
-      padding: var(--gap-lg) var(--gap);
-      background: rgba(8,8,7,0.85);
-      backdrop-filter: blur(4px);
-      color: #7a7670;
+      border-top: 1px solid var(--border); padding: var(--gap-lg) var(--gap);
+      background: rgba(8,8,7,0.85); backdrop-filter: blur(4px); color: #7a7670;
     }
     .site-footer__brand { font-family: var(--mono); font-size: 0.65rem; }
     .site-footer__links { display: flex; gap: var(--gap); flex-wrap: wrap; margin-top: 1rem; }
     .site-footer__links a { font-family: var(--mono); font-size: 0.62rem; color: #444; }
-    .site-footer__bottom { font-family: var(--mono); font-size: 0.58rem; margin-top: 2rem; border-top: 1px solid #222; padding-top: 1rem; display: flex; justify-content: space-between; }
-
-    @media (min-width: 860px) {
-      .gauge-grid { grid-template-columns: repeat(4, 1fr); }
+    .site-footer__bottom {
+      font-family: var(--mono); font-size: 0.58rem; margin-top: 2rem;
+      border-top: 1px solid #222; padding-top: 1rem; display: flex; justify-content: space-between;
     }
   </style>
 </head>
 <body>
-
-  <!-- CANVAS DE FONDO (red de nodos) -->
   <canvas id="network-canvas"></canvas>
-
   <div class="site-wrap">
     <div class="topbar">
-      <div class="topbar__brand"><span>⏣</span> SYSTEM FRICTION <span>· SCORECARD</span></div>
+      <div class="topbar__brand"><span>⏣</span> SYSTEM FRICTION <span>· OBSERVATORIO</span></div>
       <div class="topbar__nav">
         <a href="#">INICIO</a>
-        <a href="#">REPOSITORIO</a>
-        <a href="#" id="open-modal-link">NODO AGS</a> <!-- modificado para abrir modal -->
-        <a href="#">LAB</a>
+        <a href="https://aptymok.github.io/system-friction-main/laboratorio/" target="_blank">REPOSITORIO</a>
+        <a href="#" id="open-modal-link">NODO AGS</a>
+        <a href="https://aptymok.github.io/system-friction-main/laboratorio/" target="_blank">LAB</a>
         <a href="#">DOCS</a>
       </div>
       <div class="topbar__ihg"><span class="topbar__ihg-dot"></span> IHG <span id="ihg-value">-0.620</span></div>
     </div>
 
-    <main class="site-main">
+    <main>
       <section class="hero">
         <div class="hero__postulate">Postulado de partida</div>
         <div class="hero__formula">f = (<em>t</em>/<em>T</em>) + <em>O</em></div>
-        <div class="hero__sub">La fricción sistémica como razón temporal más opacidad.</div>
-        <div class="hero__event">⚡ EVENTO CRÍTICO · ACTOR HEGEMÓNICO · FEB 2026</div>
+        <div class="hero__sub">Fricción sistémica: latencia temporal + opacidad</div>
+        <div class="hero__event">⚡ CASO AGS · COLAPSO INSTITUCIONAL · 2024-2026</div>
       </section>
 
+      <!-- DASHBOARD PRINCIPAL (con datos dinámicos) -->
       <section class="section section--dashboard">
         <div class="section__label">SCORECARD · MÉTRICAS AGREGADAS</div>
         <div class="gauge-grid">
@@ -357,7 +249,6 @@
             <div class="gauge-card__sub">Índice de Gobernanza Homeostática</div>
             <span class="badge badge-emrg">PROTOCOLO EMERGENCIA</span>
           </div>
-
           <div class="gauge-card">
             <div class="gauge-card__label">NTI SISTEMA</div>
             <div class="gauge-card__value" id="gauge-nti" style="color: var(--gold)">0.351</div>
@@ -368,43 +259,77 @@
             </div>
             <span class="badge badge-crit">INFRA-UCAP</span>
           </div>
-
           <div class="gauge-card">
             <div class="gauge-card__label">FRACTURA (2030)</div>
             <div class="gauge-card__value" id="gauge-frac" style="color: var(--warn-text)">71%</div>
             <div class="gauge-card__sub">P(colapso) · Monte Carlo</div>
             <span class="badge badge-warn">ALTA PROBABILIDAD</span>
           </div>
-
-          <!-- Tarjeta NODO AGS ahora abre el modal -->
           <div class="gauge-card" id="ags-card" style="background: #000; color: #c9a84c; border-color: #c9a84c; cursor: pointer;">
             <div class="gauge-card__label" style="color: #c9a84c">NODO AGS</div>
-            <div class="gauge-card__value">POST</div>
-            <span class="badge" style="color: #c9a84c; border-color: #c9a84c">VER ANÁLISIS →</span>
+            <div class="gauge-card__value">CASO</div>
+            <span class="badge" style="color: #c9a84c; border-color: #c9a84c">VER 6 FASES →</span>
           </div>
         </div>
       </section>
 
-      <section class="section">
-        <div class="section__label">NÚCLEO OPERATIVO · DOCUMENTOS</div>
-        <div class="gauge-grid" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
-          <a href="#" class="gauge-card">
-            <span class="gauge-card__label">CORE-00</span>
-            <span class="gauge-card__sub">Metodología de lectura.</span>
-          </a>
-          <a href="#" class="gauge-card">
-            <span class="gauge-card__label">DOC-01</span>
-            <span class="gauge-card__sub">Zonas grises operativas.</span>
-          </a>
+      <!-- LABORATORIO MIHM v2.0 (dinámico) -->
+      <section class="section section--lab">
+        <div class="section__label">LABORATORIO MIHM v2.0 · SIMULADOR EN VIVO</div>
+        <div class="lab-panel">
+          <!-- Simulador de Fricción -->
+          <div class="simulador">
+            <h3>⏣ Fricción Homeostática: f = (t/T) + O</h3>
+            <div class="slider-group">
+              <label>t (tiempo real) <span id="t-val">24</span> h</label>
+              <input type="range" id="t-slider" min="0" max="48" value="24" step="1">
+            </div>
+            <div class="slider-group">
+              <label>T (tiempo normativo) <span id="T-val">24</span> h</label>
+              <input type="range" id="T-slider" min="1" max="48" value="24" step="1">
+            </div>
+            <div class="slider-group">
+              <label>O (opacidad) <span id="O-val">0.40</span></label>
+              <input type="range" id="O-slider" min="0" max="1" value="0.4" step="0.01">
+            </div>
+            <div class="valor-dinamico" id="f-val">1.000</div>
+            <div class="umbral"><span>Crítico > 0.7</span> <span id="f-msg" style="color:var(--crit)">CRÍTICO</span></div>
+          </div>
+          <!-- Simulador de IHG -->
+          <div class="simulador">
+            <h3>⏣ IHG Sintético</h3>
+            <div class="slider-group">
+              <label>NTI <span id="nti-lab">0.35</span></label>
+              <input type="range" id="nti-slider" min="0" max="1" value="0.35" step="0.01">
+            </div>
+            <div class="slider-group">
+              <label>PF (inacción) <span id="pf-lab">0.60</span></label>
+              <input type="range" id="pf-slider" min="0" max="1" value="0.6" step="0.01">
+            </div>
+            <div class="slider-group">
+              <label>CSR (recuperación) <span id="csr-lab">0.05</span></label>
+              <input type="range" id="csr-slider" min="0" max="1" value="0.05" step="0.01">
+            </div>
+            <div class="valor-dinamico" id="ihg-sim">0.015</div>
+            <div class="umbral"><span>UCAP 0.40</span> <span id="ihg-msg">OK</span></div>
+          </div>
+          <!-- Validación Monte Carlo (datos fijos del caso) -->
+          <div class="montecarlo">
+            <h3 style="color:#c9a84c">⏣ Monte Carlo · seed 42</h3>
+            <p><span>Iteraciones:</span> <span>50,000</span></p>
+            <p><span>P(D|A∪B):</span> <span>0.31</span></p>
+            <p><span>IC 95%:</span> <span>[0.306, 0.314]</span></p>
+            <p><span>Colapso >60%:</span> <span>71% (2030)</span></p>
+          </div>
         </div>
       </section>
     </main>
 
     <footer class="site-footer">
-      <div class="site-footer__brand"><strong>System Friction</strong> · v1.1</div>
+      <div class="site-footer__brand"><strong>System Friction</strong> · v2.0</div>
       <div class="site-footer__links">
-        <a href="https://systemfriction.org">systemfriction.org</a>
-        <a href="https://github.com/aptymok/SystemFrictionLab">GitHub (lab)</a>
+        <a href="https://aptymok.github.io/system-friction-main/MIHM/caso-estudio/" target="_blank">Caso AGS</a>
+        <a href="https://aptymok.github.io/system-friction-main/laboratorio/" target="_blank">Laboratorio MIHM</a>
       </div>
       <div class="site-footer__bottom">
         <div>© 2026 Juan Antonio Marín Liera</div>
@@ -415,200 +340,114 @@
     </footer>
   </div>
 
-  <!-- MODAL PARA DESGLOSE DE NODOS (AGS, SÃO PAULO, FÉNIX, OBSERVATORIO SANTA FE) -->
+  <!-- MODAL CON LAS 6 FASES DE AGS -->
   <div class="modal-overlay" id="ags-modal">
     <div class="modal">
       <span class="modal__close" id="close-modal">&times;</span>
-      <h2>⏣ OBSERVATORIO DE FRICCIÓN SISTÉMICA · NODO AGS / SANTA FE</h2>
-      <p style="margin-bottom:1rem; color:var(--text-dim);">Conexiones trazables: Aguascalientes – São Paulo – Fénix (nodos antes no vinculantes).</p>
-      
-      <h3>⏣ NODO AGS (Aguascalientes)</h3>
-      <div class="nodo-grid">
-        <div class="nodo-card">
-          <div class="nodo-card__title">fricción local</div>
-          <div class="nodo-card__metric">0.812</div>
-          <div class="nodo-card__label">índice sintético</div>
-        </div>
-        <div class="nodo-card">
-          <div class="nodo-card__title">latencia red</div>
-          <div class="nodo-card__metric">143 ms</div>
-          <div class="nodo-card__label">a São Paulo</div>
-        </div>
-        <div class="nodo-card">
-          <div class="nodo-card__title">agentes biológicos</div>
-          <div class="nodo-card__metric">7.2e3</div>
-          <div class="nodo-card__label">unidades activas</div>
-        </div>
+      <h2>⏣ NODO AGUASCALIENTES · CASO DE ESTUDIO (2024-2026)</h2>
+      <p>136 días de degradación documentada hasta protocolo EMERGENCY_DECISION. Datos del análisis MIHM.</p>
+      <div class="fases-grid">
+        <div class="fase-card"><h4>AGS-01 · Baseline</h4><div class="fase-metrica"><span>IHG:</span><span>-0.15</span></div><div class="fase-metrica"><span>NTI:</span><span>0.85</span></div><div class="fase-metrica"><span>f:</span><span>0.94</span></div><div>✅ ESTABLE</div></div>
+        <div class="fase-card"><h4>AGS-02 · Onset</h4><div class="fase-metrica"><span>IHG:</span><span>-0.28</span></div><div class="fase-metrica"><span>NTI:</span><span>0.72</span></div><div class="fase-metrica"><span>f:</span><span>1.76</span></div><div>⚠ AMARILLA</div></div>
+        <div class="fase-card"><h4>AGS-03 · Acute</h4><div class="fase-metrica"><span>IHG:</span><span>-0.44</span></div><div class="fase-metrica"><span>NTI:</span><span>0.61</span></div><div class="fase-metrica"><span>f:</span><span>1.85</span></div><div>🔶 NARANJA</div></div>
+        <div class="fase-card"><h4>AGS-04 · Intento</h4><div class="fase-metrica"><span>IHG:</span><span>-0.41</span></div><div class="fase-metrica"><span>NTI:</span><span>0.68</span></div><div class="fase-metrica"><span>f:</span><span>0.70</span></div><div>🔶 NARANJA</div></div>
+        <div class="fase-card"><h4>AGS-05 · 2º Shock</h4><div class="fase-metrica"><span>IHG:</span><span>-0.55</span></div><div class="fase-metrica"><span>NTI:</span><span>0.45</span></div><div class="fase-metrica"><span>f:</span><span>2.10</span></div><div>🔴 ROJA</div></div>
+        <div class="fase-card"><h4>AGS-06 · Colapso</h4><div class="fase-metrica"><span>IHG:</span><span>-0.62</span></div><div class="fase-metrica"><span>NTI:</span><span>0.351</span></div><div class="fase-metrica"><span>f:</span><span>2.47</span></div><div>❌ COLAPSO</div></div>
       </div>
-
-      <h3>⏣ NODO SÃO PAULO (Fénix)</h3>
-      <div class="nodo-grid">
-        <div class="nodo-card">
-          <div class="nodo-card__title">fricción</div>
-          <div class="nodo-card__metric">1.243</div>
-          <div class="nodo-card__label">crítico</div>
-        </div>
-        <div class="nodo-card">
-          <div class="nodo-card__title">flujo digital</div>
-          <div class="nodo-card__metric">4.7 Tb/s</div>
-          <div class="nodo-card__label">interconexión</div>
-        </div>
-        <div class="nodo-card">
-          <div class="nodo-card__title">trazabilidad</div>
-          <div class="nodo-card__metric">92%</div>
-          <div class="nodo-card__label">vectores</div>
-        </div>
-      </div>
-
-      <h3>⏣ OBSERVATORIO SANTA FE (desglose dinámico)</h3>
-      <div class="nodo-grid">
-        <div class="nodo-card">
-          <div class="nodo-card__title">t₀</div>
-          <div class="nodo-card__metric">0.332</div>
-          <div class="nodo-card__label">fricción temporal</div>
-        </div>
-        <div class="nodo-card">
-          <div class="nodo-card__title">O (opacidad)</div>
-          <div class="nodo-card__metric">0.457</div>
-          <div class="nodo-card__label">índice de opacidad</div>
-        </div>
-        <div class="nodo-card">
-          <div class="nodo-card__title">trazabilidad</div>
-          <div class="nodo-card__metric">Alta</div>
-          <div class="nodo-card__label">en tiempo real</div>
-        </div>
-      </div>
-
-      <p style="margin-top:2rem; font-family:var(--mono); font-size:0.7rem; color:var(--text-faint);">Datos simulados en tiempo real · Próxima actualización: <span id="modal-timestamp">justo ahora</span></p>
+      <p style="margin-top:1rem; font-style:italic;">Diagnóstico: opacidad estructural (O=0.42) y latencia federal-local. <a href="https://aptymok.github.io/system-friction-main/MIHM/caso-estudio/" target="_blank">Ver análisis completo →</a></p>
     </div>
   </div>
 
   <script>
     (function() {
-      // ===== CANVAS DE FONDO: RED DE NODOS =====
+      // ===== CANVAS DE FONDO ===== (igual que antes, simplificado)
       const canvas = document.getElementById('network-canvas');
       const ctx = canvas.getContext('2d');
-      let width, height;
-      let particles = [];
-      const PARTICLE_COUNT = 60;
-      const CONNECTION_DISTANCE = 150;
-
+      let width, height, particles = [];
       function initParticles() {
         particles = [];
-        for (let i = 0; i < PARTICLE_COUNT; i++) {
-          particles.push({
-            x: Math.random() * width,
-            y: Math.random() * height,
-            vx: (Math.random() - 0.5) * 0.4,
-            vy: (Math.random() - 0.5) * 0.4,
-            radius: 1.5 + Math.random() * 2
-          });
+        for (let i = 0; i < 50; i++) {
+          particles.push({ x: Math.random()*width, y: Math.random()*height, vx: (Math.random()-0.5)*0.3, vy: (Math.random()-0.5)*0.3, r: 1+Math.random()*2 });
         }
       }
-
-      function resizeCanvas() {
-        width = window.innerWidth;
-        height = window.innerHeight;
-        canvas.width = width;
-        canvas.height = height;
-        initParticles();
-      }
-
-      function drawParticles() {
-        ctx.clearRect(0, 0, width, height);
-        // dibujar conexiones
-        ctx.strokeStyle = '#0044ff';
-        ctx.lineWidth = 0.5;
-        for (let i = 0; i < particles.length; i++) {
-          for (let j = i + 1; j < particles.length; j++) {
-            const dx = particles[i].x - particles[j].x;
-            const dy = particles[i].y - particles[j].y;
-            const dist = Math.sqrt(dx*dx + dy*dy);
-            if (dist < CONNECTION_DISTANCE) {
-              ctx.beginPath();
-              ctx.moveTo(particles[i].x, particles[i].y);
-              ctx.lineTo(particles[j].x, particles[j].y);
-              ctx.strokeStyle = `rgba(0, 68, 255, ${0.2 * (1 - dist/CONNECTION_DISTANCE)})`;
-              ctx.stroke();
+      function resizeCanvas() { width = window.innerWidth; height = window.innerHeight; canvas.width = width; canvas.height = height; initParticles(); }
+      function draw() {
+        ctx.clearRect(0,0,width,height);
+        ctx.strokeStyle = '#0044ff'; ctx.lineWidth = 0.5;
+        for (let i=0; i<particles.length; i++) {
+          for (let j=i+1; j<particles.length; j++) {
+            const dx = particles[i].x - particles[j].x, dy = particles[i].y - particles[j].y;
+            const dist = Math.sqrt(dx*dx+dy*dy);
+            if (dist < 150) {
+              ctx.beginPath(); ctx.moveTo(particles[i].x, particles[i].y); ctx.lineTo(particles[j].x, particles[j].y);
+              ctx.strokeStyle = `rgba(0,68,255,${0.2*(1-dist/150)})`; ctx.stroke();
             }
           }
         }
-        // dibujar partículas
-        ctx.fillStyle = '#0044ff';
-        particles.forEach(p => {
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, p.radius, 0, Math.PI*2);
-          ctx.fillStyle = '#0044ff';
-          ctx.fill();
-          // actualizar posición
-          p.x += p.vx;
-          p.y += p.vy;
-          // rebote en bordes
-          if (p.x < 0 || p.x > width) p.vx *= -1;
-          if (p.y < 0 || p.y > height) p.vy *= -1;
-        });
-        requestAnimationFrame(drawParticles);
+        particles.forEach(p => { ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 2*Math.PI); ctx.fillStyle = '#0044ff'; ctx.fill(); p.x += p.vx; p.y += p.vy; if (p.x<0||p.x>width) p.vx*=-1; if (p.y<0||p.y>height) p.vy*=-1; });
+        requestAnimationFrame(draw);
       }
+      window.addEventListener('resize', resizeCanvas); resizeCanvas(); draw();
 
-      window.addEventListener('resize', resizeCanvas);
-      resizeCanvas();
-      drawParticles();
-
-      // ===== DATOS DINÁMICOS (SIMULACIÓN) =====
-      function randomWalk(value, step, min, max, decimals=3) {
-        let newVal = value + (Math.random() - 0.5) * step;
-        if (newVal < min) newVal = min + (min - newVal);
-        if (newVal > max) newVal = max - (newVal - max);
-        return Number(newVal.toFixed(decimals));
-      }
-
-      let ihg = -0.620;
-      let nti = 0.351;
-      let frac = 71;
-
-      function updateMetrics() {
-        ihg = randomWalk(ihg, 0.03, -1.2, 0.2);
-        nti = randomWalk(nti, 0.02, 0.1, 0.9);
-        frac = randomWalk(frac, 1.5, 40, 95);
-        // actualizar DOM
+      // ===== DATOS DINÁMICOS DEL DASHBOARD PRINCIPAL =====
+      let ihg = -0.620, nti = 0.351, frac = 71;
+      function updateMainMetrics() {
+        ihg = Number((ihg + (Math.random()-0.5)*0.02).toFixed(3)); if (ihg < -1.2) ihg = -1.2; if (ihg > 0.2) ihg = 0.2;
+        nti = Number((nti + (Math.random()-0.5)*0.015).toFixed(3)); if (nti < 0.1) nti = 0.1; if (nti > 0.9) nti = 0.9;
+        frac = Math.min(95, Math.max(40, frac + (Math.random()-0.5)*2));
         document.querySelectorAll('#ihg-value, #gauge-ihg, #footer-ihg').forEach(el => el.textContent = ihg.toFixed(3));
         document.querySelectorAll('#gauge-nti, #footer-nti').forEach(el => el.textContent = nti.toFixed(3));
         document.getElementById('gauge-frac').textContent = Math.round(frac) + '%';
-        // color IHG
-        const ihgEl = document.getElementById('gauge-ihg');
-        if (ihg < -0.5) ihgEl.style.color = 'var(--crit-text)';
-        else if (ihg < 0) ihgEl.style.color = 'var(--warn-text)';
-        else ihgEl.style.color = 'var(--ok-text)';
+        const ihgColor = ihg < -0.5 ? 'var(--crit-text)' : (ihg < 0 ? 'var(--warn-text)' : 'var(--ok-text)');
+        document.getElementById('gauge-ihg').style.color = ihgColor;
       }
+      setInterval(updateMainMetrics, 4000);
 
-      setInterval(updateMetrics, 3000); // cada 3 segundos
+      // ===== SIMULADORES DEL LABORATORIO =====
+      const tSlider = document.getElementById('t-slider');
+      const TSlider = document.getElementById('T-slider');
+      const OSlider = document.getElementById('O-slider');
+      const tSpan = document.getElementById('t-val');
+      const TSpan = document.getElementById('T-val');
+      const OSpan = document.getElementById('O-val');
+      const fVal = document.getElementById('f-val');
+      const fMsg = document.getElementById('f-msg');
+      function updateF() {
+        const t = parseFloat(tSlider.value);
+        const T = parseFloat(TSlider.value);
+        const O = parseFloat(OSlider.value);
+        tSpan.textContent = t; TSpan.textContent = T; OSpan.textContent = O.toFixed(2);
+        const f = t/T + O;
+        fVal.textContent = f.toFixed(3);
+        fMsg.innerHTML = f > 0.7 ? '<span style="color:var(--crit)">CRÍTICO</span>' : '<span style="color:var(--ok)">ESTABLE</span>';
+      }
+      tSlider.addEventListener('input', updateF); TSlider.addEventListener('input', updateF); OSlider.addEventListener('input', updateF); updateF();
 
-      // ===== MODAL NODO AGS =====
+      const ntiSlider = document.getElementById('nti-slider');
+      const pfSlider = document.getElementById('pf-slider');
+      const csrSlider = document.getElementById('csr-slider');
+      const ntiLab = document.getElementById('nti-lab');
+      const pfLab = document.getElementById('pf-lab');
+      const csrLab = document.getElementById('csr-lab');
+      const ihgSim = document.getElementById('ihg-sim');
+      const ihgMsg = document.getElementById('ihg-msg');
+      function updateIHG() {
+        const n = parseFloat(ntiSlider.value);
+        const p = parseFloat(pfSlider.value);
+        const c = parseFloat(csrSlider.value);
+        ntiLab.textContent = n.toFixed(2); pfLab.textContent = p.toFixed(2); csrLab.textContent = c.toFixed(2);
+        const ihgCalc = 0.50*(n - 0.40) + 0.30*p + 0.20*(c - 0.75);
+        ihgSim.textContent = ihgCalc.toFixed(3);
+        ihgMsg.innerHTML = ihgCalc < -1.0 ? '<span style="color:var(--crit)">EMERGENCIA</span>' : (ihgCalc < -0.5 ? '<span style="color:var(--warn)">ALERTA</span>' : '<span style="color:var(--ok)">OK</span>');
+      }
+      ntiSlider.addEventListener('input', updateIHG); pfSlider.addEventListener('input', updateIHG); csrSlider.addEventListener('input', updateIHG); updateIHG();
+
+      // ===== MODAL AGS =====
       const modal = document.getElementById('ags-modal');
-      const openButtons = [
-        document.getElementById('open-modal-link'),
-        document.getElementById('ags-card')
-      ];
-      const closeBtn = document.getElementById('close-modal');
-
-      function openModal() {
-        modal.classList.add('active');
-        document.getElementById('modal-timestamp').textContent = new Date().toLocaleTimeString();
-      }
-      function closeModal() {
-        modal.classList.remove('active');
-      }
-
-      openButtons.forEach(btn => btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        openModal();
-      }));
-      closeBtn.addEventListener('click', closeModal);
-      window.addEventListener('click', (e) => {
-        if (e.target === modal) closeModal();
-      });
-
-      // actualizar timestamp del modal cada vez que se abre (ya está en openModal)
+      document.getElementById('open-modal-link').addEventListener('click', (e) => { e.preventDefault(); modal.classList.add('active'); });
+      document.getElementById('ags-card').addEventListener('click', (e) => { e.preventDefault(); modal.classList.add('active'); });
+      document.getElementById('close-modal').addEventListener('click', () => modal.classList.remove('active'));
+      window.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('active'); });
     })();
   </script>
 </body>
