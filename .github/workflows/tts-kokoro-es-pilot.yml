@@ -1,5 +1,9 @@
 name: SFI | Kokoro Spanish voice pilot (synthetic)
 on:
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/workflows/tts-kokoro-es-pilot.yml
   push:
     branches:
       - experiment/tts-kokoro-es-20261017
@@ -76,13 +80,6 @@ jobs:
           python pilot.py
           ffmpeg -y -hide_banner -loglevel error -i pilot/piloto_kokoro_es.wav -codec:a libmp3lame -b:a 128k pilot/piloto_kokoro_es.mp3
           ffprobe -v error -show_entries format=duration,size -of default=noprint_wrappers=1 pilot/piloto_kokoro_es.mp3
-      - name: Publish pilot on experimental branch only
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add pilot/piloto_kokoro_es.mp3 pilot/guion_piloto.json
-          git commit -m "artifact(audio): verified Kokoro Spanish pilot - SYNTHETIC"
-          git push origin HEAD:experiment/tts-kokoro-es-20261017
       - name: Upload only generated pilot and transcript
         uses: actions/upload-artifact@v4
         with:
@@ -93,3 +90,12 @@ jobs:
             pilot/guion_piloto.json
           retention-days: 1
           if-no-files-found: error
+
+      - name: Publish pilot on experimental branch only
+        continue-on-error: true
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pilot/piloto_kokoro_es.mp3 pilot/guion_piloto.json
+          git commit -m "artifact(audio): verified Kokoro Spanish pilot - SYNTHETIC"
+          git push origin HEAD:experiment/tts-kokoro-es-20261017
