@@ -1,0 +1,121 @@
+name: SFI | Mexican Spanish speech comparison (synthetic)
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/workflows/tts-es-mx-natural.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  mx-pilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install synthesis and mixing
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          python -m pip install --disable-pip-version-check edge-tts pydub numpy soundfile
+      - name: Generate a Mexican Spanish conversation
+        run: |
+          mkdir -p result
+          cat > mx_pilot.py <<'PY'
+          import asyncio
+          import json
+          from pathlib import Path
+          import numpy as np
+          from pydub import AudioSegment, effects
+          import edge_tts
+          from edge_tts import VoicesManager
+
+          OUT = Path('result')
+          TURNS = [
+            ('ENCUESTADORA', 'Esta grabación es una simulación con voces sintéticas, no una entrevista real.'),
+            ('ENCUESTADORA', 'Buenas tardes. Oiga, disculpe, estamos preguntando qué hace falta por aquí en la colonia. ¿Tiene un minutito?'),
+            ('VECINO', 'Sí, dígame. Nada más que ahorita voy de salida.'),
+            ('ENCUESTADORA', 'Claro, rapidito. ¿Qué es lo que más le preocupa de esta calle?'),
+            ('VECINO', 'Pues, mire... los baches, para empezar. Ahí en la esquina se hace un charco enorme cada que llueve. Y ya van dos carros que pegan ahí.'),
+            ('ENCUESTADORA', '¿Y ya lo reportaron con el municipio?'),
+            ('VECINO', 'Sí, varias veces. Nos dicen que van a venir, pero hasta ahorita nada. La verdad, eso es lo que molesta.'),
+            ('ENCUESTADORA', 'Entiendo. Y si vinieran a revisar, ¿qué le gustaría que hicieran primero?'),
+            ('VECINO', 'Que tapen bien el hoyo, no nomás que le echen tierra. Y que arreglen el drenaje, porque si no, vuelve a pasar.'),
+            ('ENCUESTADORA', 'Perfecto, muchas gracias por su tiempo. Que tenga buena tarde.'),
+            ('VECINO', 'Igualmente, hasta luego.'),
+          ]
+
+          async def run():
+              voices = await edge_tts.list_voices()
+              mexican = [{'name':v['ShortName'],'gender':v['Gender']} for v in voices if v['Locale'] == 'es-MX']
+              print('MEXICAN_VOICES',json.dumps(mexican,ensure_ascii=False), flush=True)
+              woman = 'es-MX-DaliaNeural'
+              man = 'es-MX-JorgeNeural'
+              available = {v['name'] for v in mexican}
+              assert woman in available and man in available, 'Mexican voices not available'
+              chunks = []
+              records = []
+              for i, (role, words) in enumerate(TURNS,1):
+                  voice = woman if role == 'ENCUESTADORA' else man
+                  rate = '+2%' if role == 'ENCUESTADORA' else '-4%'
+                  pitch = '+0Hz' if role == 'ENCUESTADORA' else '-7Hz'
+                  f = OUT / f'turn_{i:02d}.mp3'
+                  last_error = None
+                  for attempt in range(2):
+                      try:
+                          await edge_tts.Communicate(words, voice,rate=rate,pitch=pitch).save(str(f))
+                          last_error = None
+                          break
+                      except Exception as exc:
+                          last_error = str(exc)
+                          if attempt==0: await asyncio.sleep(2)
+                  if last_error:
+                      raise RuntimeError(f'Voice synthesis failed at turn {i}: {last_error}')
+                  seg = AudioSegment.from_file(f, format='mp3').set_channels(1).set_frame_rate(24000)
+                  seg = effects.normalize(seg, headroom=2.0)
+                  chunks.append(seg)
+                  records.append({'turn':i,'role':role,'voice':voice,'text':words,'duration_seconds':round(len(seg)/1000,2)})
+                  print('GENERATED',i,role,voice,round(len(seg)/1000,2),flush=True)
+
+              clean = AudioSegment.silent(duration=250,frame_rate=24000)
+              pauses = [330,420,300,470,420,450,290,460,480,380,350]
+              for ix, seg in enumerate(chunks):
+                  clean += seg + AudioSegment.silent(duration=pauses[ix],frame_rate=24000)
+              clean = effects.normalize(clean,headroom=1.8)
+              clean.export(OUT/'piloto_mexicano_limpio.mp3',format='mp3',bitrate='128k')
+              clean.export(OUT/'piloto_mexicano_limpio.wav',format='wav')
+
+              # Optional synthetic ambient texture, not an actual environmental recording.
+              rng=np.random.default_rng(20261017)
+              samples=np.frombuffer(clean.raw_data,dtype=np.int16).astype(np.float32)
+              noise = rng.normal(0, 0.0008, len(samples))*32768
+              field = np.clip(samples*0.92 + noise, -32768, 32767).astype(np.int16)
+              field_audio=AudioSegment(data=field.tobytes(),sample_width=2,frame_rate=24000,channels=1)
+              field_audio = field_audio.high_pass_filter(110).low_pass_filter(9000)
+              field_audio.export(OUT/'piloto_mexicano_ambiente_sintetico.mp3',format='mp3',bitrate='128k')
+              manifest={'synthetic':True,'real_interview':False,'dialect':'es-MX','voice_inventory':mexican,'turns':records,'duration_seconds':round(len(clean)/1000,2),'notes':'All words fictional. Ambient sound, where present, is synthetic. Not a real citizen testimonial.'}
+              (OUT/'manifiesto_es_mx.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2),encoding='utf-8')
+              assert (OUT/'piloto_mexicano_limpio.mp3').stat().st_size > 50000
+              print('MEXICAN_PILOT_SUCCESS',manifest['duration_seconds'],flush=True)
+          asyncio.run(run())
+          PY
+          python mx_pilot.py
+          ffprobe -v error -show_entries format=duration,size -of default=noprint_wrappers=1 result/piloto_mexicano_limpio.mp3
+      - name: Upload both synthetic comparisons and transcript
+        uses: actions/upload-artifact@v4
+        with:
+          name: audio-sintetico-mexicano-comparacion
+          path: result/piloto_mexicano_*.mp3
+          retention-days: 3
+          if-no-files-found: error
+      - name: Upload evidence and transcript
+        uses: actions/upload-artifact@v4
+        with:
+          name: audio-sintetico-mexicano-evidencia
+          path: |
+            result/manifiesto_es_mx.json
+            result/piloto_mexicano_limpio.wav
+          retention-days: 3
+          if-no-files-found: error
