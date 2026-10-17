@@ -1,0 +1,85 @@
+name: SFI | Kokoro Spanish voice pilot (synthetic)
+on:
+  push:
+    branches:
+      - experiment/tts-kokoro-es-20261017
+    paths:
+      - .github/workflows/tts-kokoro-es-pilot.yml
+permissions:
+  contents: read
+concurrency:
+  group: sfi-free-kokoro-es-pilot
+  cancel-in-progress: true
+jobs:
+  pilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Dependencies for Spanish phonemization
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq espeak-ng ffmpeg libsndfile1
+      - name: Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install open source TTS
+        run: |
+          python -m pip install --disable-pip-version-check 'kokoro-onnx>=0.6.0' 'misaki[en]' soundfile numpy
+      - name: Download public Kokoro ONNX model and voices
+        run: |
+          mkdir -p pilot
+          curl --fail --location --retry 2 --max-time 180 -o pilot/kokoro-v1.0.onnx 'https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.1/kokoro-v1.0.onnx'
+          curl --fail --location --retry 2 --max-time 120 -o pilot/voices-v1.0.bin 'https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.1/voices-v1.0.bin'
+          test $(wc -c < pilot/kokoro-v1.0.onnx) -gt 250000000
+          test $(wc -c < pilot/voices-v1.0.bin) -gt 20000000
+      - name: Generate a TWO-VOICE Spanish interview (FICTIONAL)
+        run: |
+          cat > pilot.py <<'PY'
+          import json
+          from pathlib import Path
+          import numpy as np
+          import soundfile as sf
+          from kokoro_onnx import Kokoro
+          from misaki.espeak import EspeakG2P
+          path = Path('pilot')
+          g2p = EspeakG2P(language='es')
+          tts = Kokoro(str(path/'kokoro-v1.0.onnx'), str(path/'voices-v1.0.bin'))
+          turns = [
+            ('ENCUESTADORA', 'Esta grabación es una simulación ficticia; no es una entrevista ciudadana real. Buenas tardes, disculpe la molestia. ¿Ha escuchado hablar del senador Toño Martín del Campo?'),
+            ('RESPONDIENTE', 'Sí lo ubico, aunque no conozco a fondo sus propuestas.'),
+            ('ENCUESTADORA', 'Sin necesidad de tomar partido, ¿qué tendría que mostrar un representante para ganarse su confianza?'),
+            ('RESPONDIENTE', 'La información clara; mucha gente no distingue lo municipal de lo federal.'),
+            ('ENCUESTADORA', 'Pasando a lo cotidiano, ¿cuál es el problema que usted atendería primero en esta zona?'),
+            ('RESPONDIENTE', 'En mi zona hay baches profundos en varias calles. Cuando llueve casi no se distinguen, y los carros tienen que esquivarlos. Para mí sí es una prioridad.'),
+            ('ENCUESTADORA', '¿Qué resultado sería verificable para usted, más allá de una promesa?'),
+            ('RESPONDIENTE', 'Pediría una revisión de los tramos dañados y un calendario de reparación, con una lista pública de calles intervenidas y fotografías comparables.'),
+            ('ENCUESTADORA', 'Le agradezco. Terminamos esta simulación sin registrar datos personales ni prometer beneficios.'),
+          ]
+          audio_parts = []
+          items = []
+          for ix, (role, text) in enumerate(turns):
+              phonemes, _ = g2p(text)
+              voice = 'ef_dora' if role == 'ENCUESTADORA' else 'em_alex'
+              audio, sr = tts.create(phonemes, voice=voice, speed=1.07 if role == 'ENCUESTADORA' else 0.95, is_phonemes=True)
+              audio_parts += [audio.astype('float32'), np.zeros(int(sr * 0.38), dtype='float32')]
+              items.append({'turn':ix+1,'role':role,'voice':voice,'text':text,'seconds':round(len(audio)/sr,2)})
+              print(role, voice, 'seconds', round(len(audio)/sr,2), flush=True)
+          final_audio = np.concatenate(audio_parts)
+          sf.write(path/'piloto_kokoro_es.wav', final_audio, sr, subtype='PCM_16')
+          (path/'guion_piloto.json').write_text(json.dumps({'synthetic':True, 'real_interview':False,'model':'kokoro-onnx v1.0','turns':items}, ensure_ascii=False,indent=2),encoding='utf8')
+          print('PILOT_OK',len(turns),'turns',round(len(final_audio)/sr,2),'seconds',flush=True)
+          PY
+          python pilot.py
+          ffmpeg -y -hide_banner -loglevel error -i pilot/piloto_kokoro_es.wav -codec:a libmp3lame -b:a 128k pilot/piloto_kokoro_es.mp3
+          ffprobe -v error -show_entries format=duration,size -of default=noprint_wrappers=1 pilot/piloto_kokoro_es.mp3
+      - name: Upload only generated pilot and transcript
+        uses: actions/upload-artifact@v4
+        with:
+          name: sfi-kokoro-es-pilot-synthetic
+          path: |
+            pilot/piloto_kokoro_es.mp3
+            pilot/piloto_kokoro_es.wav
+            pilot/guion_piloto.json
+          retention-days: 1
+          if-no-files-found: error
