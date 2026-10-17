@@ -1,0 +1,113 @@
+name: SFI | Conversacion mexicana natural (piloto ficticio)
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/workflows/tts-dialogo-natural-es-mx.yml
+permissions:
+  contents: read
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install synthesizers and audio tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          python -m pip install --disable-pip-version-check edge-tts gradio_client pydub numpy soundfile
+      - name: Render a responsive two-person Mexican Spanish conversation
+        run: |
+          mkdir -p result
+          cat > render.py <<'PY'
+          import asyncio, json, os, shutil, re, statistics
+          from pathlib import Path
+          import edge_tts
+          from gradio_client import Client, handle_file
+          from pydub import AudioSegment, effects
+          OUT=Path('result')
+          VOICE='es-MX-DaliaNeural'
+          SPACE='ResembleAI/Chatterbox-Multilingual-TTS-es-mx-latam'
+          SAMPLE='https://storage.googleapis.com/chatterbox-demo-samples/mtl_prompts/es_m1.flac'
+          # This is a performance adaptation of the fictional ENT-001 scenario.
+          # The candidate is only named; no policy achievements, endorsements, or promises are invented.
+          TURNS=[
+            ('E','Buenas tardes, disculpe. ¿Tiene un minuto? Estamos haciendo unas preguntas por aquí.'),
+            ('P','Sí, dígame. ¿De qué se trata?'),
+            ('E','Gracias. Mire, queríamos saber si ubica al senador Toño Martín del Campo. Si ha escuchado de él.'),
+            ('P','Pues... de nombre sí. Pero no tengo muy claro qué ha hecho últimamente.'),
+            ('E','Ah, está bien. Y de aquí, de la colonia, ¿qué asunto ve más urgente?'),
+            ('P','Pues los baches. Ahí atrás... no sé si pasó por la calle que da a la avenida.'),
+            ('E','¿La que está junto a la tienda?'),
+            ('P','Esa. Bueno, un poquito antes. Ahí hay uno grandísimo. Los carros se meten al otro carril para sacarle la vuelta.'),
+            ('E','Ah, ya. ¿Y eso ya lo reportaron?'),
+            ('P','Sí, mi vecino fue, creo que dos veces. Vinieron, le echaron tierra y... ahí quedó. Llueve y vuelve a estar igual.'),
+            ('E','Ya. O sea que el arreglo no dura.'),
+            ('P','Exacto. Mire, se lo digo porque a veces vienen, toman fotos y luego ya no volvemos a saber nada.'),
+            ('E','Sí, entiendo. ¿Y qué esperaría que hicieran después de escucharlo?'),
+            ('P','Que nos dijeran qué van a hacer, pero con una fecha, si se puede.'),
+            ('E','Claro. Aunque yo ahorita no traigo una obra autorizada para ofrecerle.'),
+            ('P','Bueno, ¿pero entonces sí van a traer apoyos, o nada más están preguntando?'),
+            ('E','Por ahora son preguntas. No le quiero prometer algo que no puedo confirmar.'),
+            ('P','Ah, bueno, está bien. Entonces, si vuelven, que sea con una respuesta.'),
+            ('E','Sí, claro. Gracias por su tiempo.'),
+            ('P','Sí. Que le vaya bien.'),
+          ]
+          PAUSES_MS=[185,275,195,240,260,130,110,210,145,255,155,215,240,130,210,185,230,170,250,360]
+          assert len(TURNS)==len(PAUSES_MS)
+          async def intro():
+              f=OUT/'intro.mp3'
+              await edge_tts.Communicate('Simulación. Conversación y voces generadas por inteligencia artificial.',VOICE,rate='+1%').save(str(f))
+              return AudioSegment.from_file(f)
+          def get_male(client, ref, text,ix):
+              result=client.predict(text,ref,0.54,0.80,9117,0.35,api_name='/generate_tts_audio')
+              if isinstance(result,(tuple,list)):result=result[0]
+              if isinstance(result,dict): result=result.get('path') or result.get('name')
+              assert isinstance(result,str) and os.path.exists(result),f'Chatterbox missing file {ix}: {result}'
+              return AudioSegment.from_file(result)
+          async def run():
+              candidates=await edge_tts.list_voices()
+              assert any(v['ShortName']==VOICE and v['Locale']=='es-MX' for v in candidates)
+              client=Client(SPACE,verbose=False)
+              ref=handle_file(SAMPLE)
+              intro_segment=await intro()
+              pieces=[intro_segment.set_channels(1).set_frame_rate(24000),AudioSegment.silent(duration=650,frame_rate=24000)]
+              stats=[]
+              for ix,(speaker,text) in enumerate(TURNS):
+                  if speaker=='E':
+                      f=OUT/f'e_{ix:02d}.mp3'
+                      rate=['-3%','+1%','+0%','-1%'][ix%4]
+                      await edge_tts.Communicate(text,VOICE,rate=rate,pitch='-1Hz').save(str(f))
+                      segment=AudioSegment.from_file(f)
+                      engine='es-MX-DaliaNeural'
+                  else:
+                      segment=get_male(client,ref,text,ix)
+                      engine='Chatterbox-es-mx-latam'
+                  segment=effects.normalize(segment.set_channels(1).set_frame_rate(24000),headroom=1.8)
+                  pieces.append(segment)
+                  pieces.append(AudioSegment.silent(duration=PAUSES_MS[ix],frame_rate=24000))
+                  stats.append({'turn':ix+1,'speaker':speaker,'text':text,'engine':engine,'duration_seconds':round(len(segment)/1000,2),'pause_after_ms':PAUSES_MS[ix]})
+                  print('SUCCESS_TURN',ix+1,speaker,round(len(segment)/1000,2),flush=True)
+              audio=sum(pieces,AudioSegment.empty()).set_channels(1).set_frame_rate(24000)
+              audio=effects.normalize(audio,headroom=1.5)
+              audio.export(OUT/'dialogo_natural_mexicano_piloto.mp3',format='mp3',bitrate='144k')
+              (OUT/'registro_piloto.json').write_text(json.dumps({'synthetic':True,'not_real_survey':True,'seconds':round(len(audio)/1000,2),'turns':stats},indent=2,ensure_ascii=False),encoding='utf8')
+              (OUT/'guion.txt').write_text('ENTREVISTA FICTICIA. NO ES RECOLECCIÓN DE OPINIONES REALES.\\n\\n'+'\\n'.join(('ENCUESTADORA' if a=='E' else 'PERSONA')+': '+b for a,b in TURNS),encoding='utf8')
+              print('AUDIO_READY',round(len(audio)/1000,2),(OUT/'dialogo_natural_mexicano_piloto.mp3').stat().st_size,flush=True)
+          asyncio.run(run())
+          PY
+          python render.py
+          ffprobe -v error -show_entries format=duration,size -of default=noprint_wrappers=1 result/dialogo_natural_mexicano_piloto.mp3
+      - name: Upload pilot and script
+        uses: actions/upload-artifact@v4
+        with:
+          name: dialogo-conversacional-mexicano-sintetico
+          path: |
+            result/dialogo_natural_mexicano_piloto.mp3
+            result/registro_piloto.json
+            result/guion.txt
+          retention-days: 3
+          if-no-files-found: error
