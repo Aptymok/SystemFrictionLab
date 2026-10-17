@@ -25,7 +25,7 @@ jobs:
           cat > chatterbox_mx.py <<'PY'
           import json, os, shutil
           from pathlib import Path
-          from gradio_client import Client
+          from gradio_client import Client, handle_file
           p=Path('result')
           space='ResembleAI/Chatterbox-Multilingual-TTS-es-mx-latam'
           phrase='Pues, mire... la calle está muy fea, y cuando llueve se hace un charco grandísimo. Ya lo reportamos varias veces, pero nada. Yo digo que eso deberían arreglar primero.'
@@ -36,7 +36,8 @@ jobs:
           ep=next((x for x in names if 'generate' in x.lower()), names[0] if names else None)
           print('SELECTED_ENDPOINT',ep,flush=True)
           if ep is None: raise RuntimeError('Demo exposes no callable audio API')
-          result=client.predict(phrase,None,0.58,0.82,9184,0.35,api_name=ep)
+          ref=handle_file('https://storage.googleapis.com/chatterbox-demo-samples/mtl_prompts/es_m1.flac')
+          result=client.predict(phrase,ref,0.58,0.82,9184,0.35,api_name=ep)
           print('RESULT_TYPE',str(type(result)),str(result)[:550],flush=True)
           if isinstance(result,dict):
               result=result.get('path') or result.get('name') or result.get('value')
