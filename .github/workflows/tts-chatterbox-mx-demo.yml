@@ -1,0 +1,66 @@
+name: SFI | Chatterbox native Mexican voice demo (synthetic)
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/workflows/tts-chatterbox-mx-demo.yml
+permissions:
+  contents: read
+jobs:
+  pilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 11
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install demo client and audio tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          python -m pip install --disable-pip-version-check gradio_client soundfile
+      - name: Generate fictional Mexican Spanish respondent with native LatAm model
+        run: |
+          mkdir -p result
+          cat > chatterbox_mx.py <<'PY'
+          import json, os, shutil
+          from pathlib import Path
+          from gradio_client import Client
+          p=Path('result')
+          space='ResembleAI/Chatterbox-Multilingual-TTS-es-mx-latam'
+          phrase='Pues, mire... la calle está muy fea, y cuando llueve se hace un charco grandísimo. Ya lo reportamos varias veces, pero nada. Yo digo que eso deberían arreglar primero.'
+          client=Client(space,verbose=True)
+          info=client.view_api(return_format='dict',print_info=False)
+          print('API_DETAILS',json.dumps(info,ensure_ascii=False,default=str)[:10000],flush=True)
+          names=list(info.get('named_endpoints',{}).keys())
+          ep=next((x for x in names if 'generate' in x.lower()), names[0] if names else None)
+          print('SELECTED_ENDPOINT',ep,flush=True)
+          if ep is None: raise RuntimeError('Demo exposes no callable audio API')
+          result=client.predict(phrase,None,0.58,0.82,9184,0.35,api_name=ep)
+          print('RESULT_TYPE',str(type(result)),str(result)[:550],flush=True)
+          if isinstance(result,dict):
+              result=result.get('path') or result.get('name') or result.get('value')
+          if isinstance(result,(list,tuple)):
+              result=result[0]
+          if isinstance(result,dict):result=result.get('path') or result.get('name')
+          assert isinstance(result,str) and os.path.exists(result), f'No output audio path: {result}'
+          ext=Path(result).suffix.lower()
+          if ext not in ['.wav','.mp3','.flac','.ogg']: ext='.wav'
+          audio=p/('piloto_chatterbox_mx'+ext)
+          shutil.copyfile(result,audio)
+          (p/'manifiesto_chatterbox_mx.json').write_text(json.dumps({'simulated':True,'source_demo':space,'language':'es-MX','text':phrase,'exaggeration':0.58,'temperature':0.82,'cfg':0.35,'source_audio':audio.name},ensure_ascii=False,indent=2),encoding='utf8')
+          print('CHATTERBOX_SUCCESS',audio,audio.stat().st_size,flush=True)
+          PY
+          python chatterbox_mx.py
+          f=$(find result -maxdepth 1 -name 'piloto_chatterbox_mx.*' | head -n 1)
+          ffmpeg -y -v error -i "$f" -codec:a libmp3lame -b:a 128k result/piloto_chatterbox_mx_final.mp3
+          ffprobe -v error -show_entries format=duration,size -of default=noprint_wrappers=1 result/piloto_chatterbox_mx_final.mp3
+      - name: Save pilot and evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: chatterbox-mexico-synthetic-pilot
+          path: |
+            result/piloto_chatterbox_mx_final.mp3
+            result/manifiesto_chatterbox_mx.json
+          if-no-files-found: error
+          retention-days: 3
