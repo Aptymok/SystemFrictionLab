@@ -1,0 +1,113 @@
+name: SFI | Spoken Mexican dialogue from natural script (synthetic)
+on:
+  pull_request:
+    branches: [main]
+    paths: [.github/workflows/piloto-guion-natural-es-mx.yml]
+permissions:
+  contents: read
+jobs:
+  voice-pilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Mexican voice synthesizer and audio mixer
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          python -m pip install --disable-pip-version-check edge-tts pydub numpy
+      - name: Generate spontaneous-sounding script pilot
+        run: |
+          mkdir -p result
+          cat > natural.py <<'PY'
+          import asyncio,json,random
+          from pathlib import Path
+          from pydub import AudioSegment,effects
+          import edge_tts
+          out=Path('result'); random.seed(171026)
+          T=[
+            ('E','Buenas tardes, disculpe. ¿Tiene un minuto? Estamos haciendo unas preguntas por aquí.'),
+            ('P','Sí, dígame.'),
+            ('E','Gracias. Mire, es sobre el trabajo del senador Toño Martín del Campo. No sé si usted lo ubica, si ha escuchado hablar de él...'),
+            ('P','Sí, de nombre sí. Ya de propuestas, no. Ahí sí no le sabría decir.'),
+            ('E','Ah, está bien. Justamente estamos preguntando eso. Y bueno, aquí en la colonia, ¿qué diría usted que hace más falta?'),
+            ('P','Pues los baches. Ahí atrás... no sé si usted pasó por la calle que da a la avenida.'),
+            ('E','¿La que está junto a la tienda?'),
+            ('P','Esa. Bueno, un poquito antes de llegar.'),
+            ('E','Sí.'),
+            ('P','Ahí tenemos un hoyo enorme. Ya hasta se ve dónde los carros le sacan la vuelta.'),
+            ('E','¿Y de ese ya hicieron algún reporte o todavía no?'),
+            ('P','Sí, dos, creo. Mi vecino fue una vez. Después fue otra señora.'),
+            ('E','Ah, bueno. ¿Y les dieron alguna respuesta?'),
+            ('P','Pues vienen, le echan tierra y listo. Llueve y vuelve a estar igual.'),
+            ('E','Ah, o sea, el problema es que no dura el arreglo.'),
+            ('P','Exactamente. Y la jardinerita que está al lado también está toda seca, pero eso ya sería otra cosa.'),
+            ('E','Sí, claro. Entonces, para usted, primero la calle.'),
+            ('P','Sí, la calle. Que hagan algo bien hecho.'),
+            ('E','Bueno, y si alguien viniera a darle seguimiento, ¿qué tendría que traer para que usted dijera que sí le sirvió la visita?'),
+            ('P','Pues una respuesta. Que no me digan nada más que lo van a revisar.'),
+            ('E','Sí, entiendo.'),
+            ('P','¿Pero ustedes sí van a traer apoyos o... nada más están preguntando?'),
+            ('E','Ahorita no le puedo ofrecer ningún programa. Lo que estamos haciendo es escuchar las necesidades; no quiero decirle que una obra ya está autorizada porque no lo sabemos.'),
+            ('P','Ah, bueno. Es que luego viene gente a preguntar y uno piensa que ya se va a hacer algo.'),
+            ('E','Sí, por eso se lo aclaro. Si hubiera una respuesta después, tendría que ser algo concreto, no una promesa mía.'),
+            ('P','Bueno, pues si vuelven, que sea con eso. Aunque sea para decirnos qué pasó.'),
+            ('E','Sí. Gracias por explicarme. Ya no le quito más tiempo.'),
+            ('P','No, está bien. Buenas tardes.'),
+            ('E','Buenas tardes.'),
+          ]
+          async def produce(i,role,text):
+              voice='es-MX-DaliaNeural' if role=='E' else 'es-MX-JorgeNeural'
+              rate=(random.choice(['+0%','+3%','+5%']) if role=='E' else random.choice(['-1%','-3%','+2%']))
+              pitch=(random.choice(['-2Hz','+0Hz','+3Hz']) if role=='E' else random.choice(['-9Hz','-5Hz','-2Hz']))
+              file=out/f't{i:02d}.mp3'
+              await edge_tts.Communicate(text,voice,rate=rate,pitch=pitch).save(str(file))
+              return (i,role,text,voice,rate,pitch,file)
+          async def main():
+              voices=await edge_tts.list_voices()
+              allnames={v['ShortName'] for v in voices if v['Locale']=='es-MX'}
+              assert {'es-MX-DaliaNeural','es-MX-JorgeNeural'}.issubset(allnames)
+              sem=asyncio.Semaphore(3)
+              async def guarded(i,role,text):
+                  async with sem:
+                      return await produce(i,role,text)
+              results=await asyncio.gather(*(guarded(i,role,txt) for i,(role,txt) in enumerate(T,1)))
+              final=AudioSegment.silent(duration=350,frame_rate=24000)
+              log=[]
+              for i,role,txt,voice,rate,pitch,file in results:
+                  seg=AudioSegment.from_file(file).set_channels(1).set_frame_rate(24000)
+                  seg=effects.normalize(seg,headroom=2.6)
+                  final+=seg
+                  last=txt.rstrip()[-1:]
+                  short=len(txt.split())<=4
+                  # Small interjections go faster, longer response turns breathe naturally.
+                  pause= random.randint(100,200) if short else random.randint(230,410)
+                  if '...' in txt:pause+=random.randint(90,180)
+                  if txt.endswith('?'):pause+=random.randint(40,110)
+                  if role=='P' and i in (22,26):pause+=100
+                  final+=AudioSegment.silent(duration=pause,frame_rate=24000)
+                  log.append(dict(turn=i,role=role,text=txt,voice=voice,rate=rate,pitch=pitch,seconds=round(len(seg)/1000,2),pause_ms=pause))
+              final=effects.normalize(final,headroom=2)
+              final.export(out/'entrevista_natural_es_mx_limpia.mp3',format='mp3',bitrate='160k')
+              # The textured version is marked simulated and must not be passed off as a real recording.
+              # Acoustical variant: filtering only; no fake street voices or manufactured crowd.
+              texture=final.high_pass_filter(125).low_pass_filter(9800)
+              texture.export(out/'entrevista_natural_es_mx_microfono.mp3',format='mp3',bitrate='160k')
+              (out/'entrevista_natural_es_mx.json').write_text(json.dumps({'simulation':True,'not_real_interview':True,'voices':'es-MX-DaliaNeural, es-MX-JorgeNeural','turns':log,'duration_seconds':round(len(final)/1000,2),'reference':'original OXXO was used for turn-taking and conversational style; no voice was cloned'},ensure_ascii=False,indent=2),encoding='utf-8')
+              print('PILOT_OK',len(T),'turns',round(len(final)/1000,2),'seconds',flush=True)
+          asyncio.run(main())
+          PY
+          python natural.py
+          ffprobe -v error -show_entries format=duration,size -of default=noprint_wrappers=1 result/entrevista_natural_es_mx_limpia.mp3
+      - name: Save generated audio and script
+        uses: actions/upload-artifact@v4
+        with:
+          name: sfi-entrevista-natural-simulada-es-mx
+          path: |
+            result/entrevista_natural_es_mx_limpia.mp3
+            result/entrevista_natural_es_mx_microfono.mp3
+            result/entrevista_natural_es_mx.json
+          retention-days: 3
+          if-no-files-found: error
